@@ -147,6 +147,24 @@ each stage separately trackable.
 - ✅ **Ledger close-out** on final disbursement: a posted expense journal entry
   is generated only after all required signature slots are satisfied.
 
+## Status — Phase 5 (Payroll and Honorariums)
+
+Staff compensation is now separate from honorariums, with clergy/admin
+distinctions represented directly in the data model.
+
+- ✅ **Staff registry** with `minister_clergy` and `administrative` staff types,
+  entity-scoped work location, employment status, PAYE jurisdiction, and pension
+  metadata.
+- ✅ **Configurable compensation components** for base salary and allowances,
+  including per-component taxable treatment for clergy housing and other edge
+  cases without hardcoding.
+- ✅ **Configurable PAYE rules** by state and staff type, used to calculate PAYE,
+  pension, NHF, gross, and net payroll line items.
+- ✅ **Payroll runs** that generate reviewable line items and post balanced
+  payroll journal entries to the ledger on approval.
+- ✅ **Honorarium payments** for guest ministers and visiting speakers, with
+  their own threshold approval flow and distinct `honorarium` ledger source.
+
 ## Design system
 
 | Token | Value | Usage |

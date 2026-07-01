@@ -54,6 +54,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { href: "/governance", label: "Governance", glyph: "GG" },
       { href: "/reconciliation", label: "Reconciliation", glyph: "RC" },
       { href: "/analytics", label: "Analytics", glyph: "AN" },
+      { href: "/reports", label: "Reports", glyph: "RP" },
       { href: "/admin", label: "Admin", glyph: "AD" },
     ],
   },

@@ -13,8 +13,10 @@
     "@supabase/supabase-js": "^2.110.0",
     "clsx": "^2.1.1",
     "next": "14.2.35",
+    "postgres": "^3.4.9",
     "react": "^18",
     "react-dom": "^18",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

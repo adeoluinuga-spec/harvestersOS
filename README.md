@@ -23,6 +23,49 @@ no data models or business logic yet.
 - ✅ Module folder architecture under `app/(modules)/*`
 - ✅ Supabase client wiring + environment templates
 
+## Status — Phase 1 (Foundational data model)
+
+The ledger foundation everything else depends on. Live in Supabase (Postgres 17),
+full RLS from the start.
+
+- ✅ **Polymorphic entity hierarchy** — Group → Sub-Group → Campus (arbitrary
+  depth via `parent_entity_id`), plus parallel Ministry Expression and temporary
+  Event nodes. Seeded with real Harvesters structure (incl. international
+  campuses in GBP/USD).
+- ✅ **Global chart of accounts** — shared structure; every ledger line ties an
+  account to a specific entity, enabling per-entity *and* consolidated reporting.
+- ✅ **Immutable double-entry ledger** — `journal_entries` + `journal_entry_lines`.
+  Database triggers enforce: balanced debits = credits (presentation currency)
+  before posting; posted entries/lines can never be UPDATE'd or DELETE'd;
+  corrections are balanced reversing entries only. Triggers fire for *every*
+  writer, including privileged ones.
+- ✅ **Multi-bank model** — account numbers **encrypted at rest** (pgcrypto +
+  key in Supabase Vault); plaintext never stored; decrypt only via a restricted
+  `SECURITY DEFINER` function.
+- ✅ **Row Level Security** on all tables — anon has no access; authenticated is
+  read-only; writes go through trusted server code. Role-based write policies
+  arrive with the auth phase.
+- ✅ **Internal admin UI** (`/admin`) to view and create entities and accounts.
+- ✅ Verified: `scripts/test-ledger.mjs` (15 integrity assertions) +
+  `scripts/rls-check.mjs`.
+
+### Database
+
+Migrations live in [`supabase/migrations`](./supabase/migrations); seed in
+[`supabase/seed.sql`](./supabase/seed.sql). Apply / verify against the direct
+connection (server-only `DATABASE_URL`):
+
+```bash
+node --env-file=.env.local scripts/db-run.mjs supabase/migrations/*.sql
+node --env-file=.env.local scripts/db-run.mjs supabase/seed.sql
+node --env-file=.env.local scripts/test-ledger.mjs   # integrity proof
+node --env-file=.env.local scripts/rls-check.mjs      # RLS/grants proof
+```
+
+> The admin UI reaches Postgres server-side over `DATABASE_URL` (a Supabase
+> service-role/secret key was not provided). Add `SUPABASE_SERVICE_ROLE_KEY`
+> later to switch server data access to supabase-js if preferred.
+
 ## Design system
 
 | Token | Value | Usage |

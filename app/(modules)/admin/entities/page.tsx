@@ -24,6 +24,7 @@ const INDENT: Record<string, string> = {
   sub_group: "pl-4",
   campus: "pl-8",
   ministry_expression: "pl-4",
+  ministry_directorate: "pl-4",
   event: "pl-8",
 };
 
@@ -67,6 +68,7 @@ export default async function EntitiesPage() {
                 <TableHeaderCell>Country</TableHeaderCell>
                 <TableHeaderCell>Currency</TableHeaderCell>
                 <TableHeaderCell>Legal status</TableHeaderCell>
+                <TableHeaderCell>Jurisdiction</TableHeaderCell>
                 <TableHeaderCell>Dates</TableHeaderCell>
               </TableRow>
             </TableHead>
@@ -93,6 +95,9 @@ export default async function EntitiesPage() {
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {e.legal_status ? humanize(e.legal_status) : "—"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {e.statutory_jurisdiction ?? "—"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {e.start_date

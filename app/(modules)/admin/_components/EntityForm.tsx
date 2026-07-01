@@ -90,6 +90,9 @@ export function EntityForm({ parents }: { parents: EntityOption[] }) {
             ))}
           </Select>
         </Field>
+        <Field label="Statutory jurisdiction" htmlFor="statutory_jurisdiction">
+          <Input id="statutory_jurisdiction" name="statutory_jurisdiction" placeholder="UK" />
+        </Field>
       </div>
 
       {isEvent && (

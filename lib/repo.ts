@@ -18,6 +18,7 @@ export type EntityRow = {
   country: string | null;
   functional_currency: string;
   legal_status: LegalStatus | null;
+  statutory_jurisdiction: string | null;
   is_active: boolean;
   start_date: string | null;
   end_date: string | null;
@@ -47,14 +48,15 @@ export async function getEntities(
   if (!all && ids.length === 0) return [];
   return sql<EntityRow[]>`
     select e.id, e.type, e.name, e.country, e.functional_currency,
-           e.legal_status, e.is_active, e.start_date, e.end_date,
+           e.legal_status, e.statutory_jurisdiction, e.is_active, e.start_date, e.end_date,
            p.name as parent_name
     from public.entities e
     left join public.entities p on p.id = e.parent_entity_id
     where ${all ? sql`true` : sql`e.id in ${sql(ids)}`}
     order by
       case e.type when 'group' then 0 when 'sub_group' then 1 when 'campus' then 2
-                  when 'ministry_expression' then 3 when 'event' then 4 else 5 end,
+                  when 'ministry_directorate' then 3 when 'ministry_expression' then 3
+                  when 'event' then 4 else 5 end,
       e.name`;
 }
 
@@ -64,7 +66,8 @@ export async function getEntityOptions(): Promise<EntityOption[]> {
     where is_active
     order by
       case type when 'group' then 0 when 'sub_group' then 1 when 'campus' then 2
-                when 'ministry_expression' then 3 when 'event' then 4 else 5 end,
+                when 'ministry_directorate' then 3 when 'ministry_expression' then 3
+                when 'event' then 4 else 5 end,
       name`;
 }
 
@@ -84,6 +87,7 @@ export type EntityInput = {
   country: string | null;
   functional_currency: string;
   legal_status: string | null;
+  statutory_jurisdiction: string | null;
   start_date: string | null;
   end_date: string | null;
 };
@@ -95,11 +99,12 @@ export async function insertEntity(
   await exec`
     insert into public.entities
       (type, parent_entity_id, name, country, functional_currency,
-       legal_status, start_date, end_date)
+       legal_status, statutory_jurisdiction, start_date, end_date)
     values
       (${d.type}::public.entity_type, ${d.parent_entity_id}, ${d.name},
        ${d.country}, ${d.functional_currency},
        ${d.legal_status}::public.legal_status,
+       ${d.statutory_jurisdiction},
        ${d.start_date}::date, ${d.end_date}::date)`;
 }
 

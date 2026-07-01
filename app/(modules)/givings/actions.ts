@@ -44,9 +44,12 @@ export async function recordGiving(
   const ctx = await requireUser();
 
   const entityId = String(formData.get("entity_id") || "");
+  const attributionEntityId = String(formData.get("attribution_entity_id") || entityId) || entityId;
   if (!entityId) return { error: "Select the receiving entity." };
   if (!canWriteEntity(ctx, entityId))
     return { error: "You do not have permission to record giving for this entity." };
+  if (!canWriteEntity(ctx, attributionEntityId))
+    return { error: "You do not have permission to attribute giving to this entity." };
 
   const mode = String(formData.get("giver_mode") || "new");
   const givingTypeId = String(formData.get("giving_type_id") || "");
@@ -90,6 +93,8 @@ export async function recordGiving(
         {
           resolve,
           entityId,
+          recordingEntityId: entityId,
+          attributionEntityId,
           givingTypeId,
           amount,
           currency,

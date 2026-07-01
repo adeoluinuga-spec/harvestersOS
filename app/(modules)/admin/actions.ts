@@ -27,6 +27,7 @@ export async function createEntity(
     .trim()
     .toUpperCase();
   const legal = String(formData.get("legal_status") || "") || null;
+  const statutory = String(formData.get("statutory_jurisdiction") || "").trim().toUpperCase() || null;
   const start = String(formData.get("start_date") || "") || null;
   const end = String(formData.get("end_date") || "") || null;
 
@@ -51,6 +52,7 @@ export async function createEntity(
           country,
           functional_currency: currency,
           legal_status: legal,
+          statutory_jurisdiction: statutory,
           start_date: start,
           end_date: end,
         },

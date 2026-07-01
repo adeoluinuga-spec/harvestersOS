@@ -23,6 +23,7 @@ export function RecordGivingForm({
 }) {
   const [state, action] = useFormState(recordGiving, initial);
   const [entityId, setEntityId] = useState(entities[0]?.id ?? "");
+  const [attributionEntityId, setAttributionEntityId] = useState(entities[0]?.id ?? "");
   const [mode, setMode] = useState<"new" | "existing" | "anonymous">("new");
   const [nonce, setNonce] = useState(0);
 
@@ -51,6 +52,20 @@ export function RecordGivingForm({
             {entities.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.name} ({e.functional_currency})
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field label="Attribution entity" htmlFor="attribution_entity_id" required>
+          <Select
+            id="attribution_entity_id"
+            name="attribution_entity_id"
+            value={attributionEntityId}
+            onChange={(e) => setAttributionEntityId(e.target.value)}
+          >
+            {entities.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
               </option>
             ))}
           </Select>

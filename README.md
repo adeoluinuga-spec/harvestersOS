@@ -236,6 +236,28 @@ reusing the shared giving, event, and honorarium models.
 - Done **NLP dashboard** with partner counts, tier breakdown, lapsed alerts,
   financial summary, digital sales, and program activity.
 
+## Status - Phase 10 (Multi-Currency and Cross-Border Compliance)
+
+International reporting now separates legal/statutory reporting from operational
+consolidation, with historical FX captured on ledger lines.
+
+- Done **FX rate table** with immutable effective-date rates and transaction-time
+  rate capture on every new journal entry line.
+- Done **NGN consolidated reporting** through a database function that converts
+  posted activity at historical transaction rates and emits currency translation
+  adjustment rows for period-end balance revaluation.
+- Done **Legal entity separation** with `statutory_jurisdiction` on entities;
+  non-NGN international entities are normalized as separate foreign entities.
+- Done **Statutory report mode** that isolates one `separate_foreign_entity` at
+  a time for local audit/filing needs.
+- Done **Cross-border transfer compliance** with required documentation before a
+  transfer can move beyond pending review, plus group-level approval controls.
+- Done **Diaspora giving distinction** with legal receipt (`recording_entity_id`)
+  separated from ministry attribution (`attribution_entity_id`) on giving
+  records and the record-giving UI.
+- Done **International dashboard** with consolidated/statutory toggle, FX rate
+  capture, transfer requests, and documentation review.
+
 ## Design system
 
 | Token | Value | Usage |

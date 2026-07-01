@@ -61,6 +61,8 @@ export type GivingHistoryRow = {
   transaction_date: string;
   type_name: string;
   entity_name: string;
+  recording_entity_name: string;
+  attribution_entity_name: string;
   amount: string;
   currency: string;
   channel: string;
@@ -69,10 +71,13 @@ export type GivingHistoryRow = {
 export async function getGiverHistory(id: string): Promise<GivingHistoryRow[]> {
   return sql<GivingHistoryRow[]>`
     select gr.id, gr.transaction_date, gt.name as type_name, e.name as entity_name,
+           rec.name as recording_entity_name, attr.name as attribution_entity_name,
            gr.amount, gr.currency, gr.channel, gr.reconciliation_status
     from public.giving_records gr
     join public.giving_types gt on gt.id = gr.giving_type_id
     join public.entities e on e.id = gr.entity_id
+    join public.entities rec on rec.id = gr.recording_entity_id
+    join public.entities attr on attr.id = gr.attribution_entity_id
     where gr.giver_id = ${id}
     order by gr.transaction_date desc, gr.created_at desc`;
 }
@@ -83,7 +88,7 @@ export async function getGiverTotals(id: string) {
         from public.giving_records gr join public.giving_types gt on gt.id = gr.giving_type_id
         where gr.giver_id = ${id} group by gt.name, gr.currency order by total desc`,
     sql`select e.name, gr.currency, sum(gr.amount) as total
-        from public.giving_records gr join public.entities e on e.id = gr.entity_id
+        from public.giving_records gr join public.entities e on e.id = gr.attribution_entity_id
         where gr.giver_id = ${id} group by e.name, gr.currency order by total desc`,
     sql`select gr.currency, sum(gr.amount) as total, count(*)::int as n
         from public.giving_records gr where gr.giver_id = ${id} group by gr.currency`,
@@ -95,26 +100,40 @@ export async function getGiverTotals(id: string) {
 // Recent givings + summary (dashboard)
 // ---------------------------------------------------------------------------
 export async function getRecentGivings(scope: Scope, limit = 25) {
+  const filter =
+    scope === "all"
+      ? sql`true`
+      : scope.length === 0
+        ? sql`false`
+        : sql`(gr.recording_entity_id in ${sql(scope)} or gr.attribution_entity_id in ${sql(scope)})`;
   return sql`
     select gr.id, gr.transaction_date, coalesce(gv.full_name, 'Anonymous') as giver,
-           gt.name as type, e.name as entity, gr.amount, gr.currency, gr.channel
+           gt.name as type, rec.name as recording_entity, attr.name as attribution_entity,
+           attr.name as entity, gr.amount, gr.currency, gr.channel
     from public.giving_records gr
     left join public.givers gv on gv.id = gr.giver_id
     join public.giving_types gt on gt.id = gr.giving_type_id
-    join public.entities e on e.id = gr.entity_id
-    where ${scoped("gr.entity_id", scope)}
+    join public.entities rec on rec.id = gr.recording_entity_id
+    join public.entities attr on attr.id = gr.attribution_entity_id
+    where ${filter}
     order by gr.created_at desc limit ${limit}`;
 }
 
 export async function getGivingSummary(scope: Scope) {
+  const grFilter =
+    scope === "all"
+      ? sql`true`
+      : scope.length === 0
+        ? sql`false`
+        : sql`(gr.recording_entity_id in ${sql(scope)} or gr.attribution_entity_id in ${sql(scope)})`;
   const [totals, givers, dupes, pledges] = await Promise.all([
     sql`select gr.currency, sum(gr.amount) as total, count(*)::int as n
         from public.giving_records gr
-        where ${scoped("gr.entity_id", scope)}
+        where ${grFilter}
           and date_trunc('year', gr.transaction_date) = date_trunc('year', current_date)
         group by gr.currency`,
     sql`select count(distinct gr.giver_id)::int as n from public.giving_records gr
-        where ${scoped("gr.entity_id", scope)}`,
+        where ${grFilter}`,
     sql`select count(*)::int as n from public.giver_merge_candidates where status = 'pending'`,
     sql`select count(*)::int as n from public.pledges p
         where p.status = 'active' and ${scoped("p.entity_id", scope)}`,
@@ -288,6 +307,8 @@ async function resolveGiver(
 export type RecordGivingInput = {
   resolve: ResolveInput;
   entityId: string;
+  recordingEntityId?: string;
+  attributionEntityId?: string;
   givingTypeId: string;
   amount: string;
   currency: string;
@@ -303,11 +324,15 @@ export async function recordGiving(
   actorId: string
 ): Promise<{ grId: string; je: string; giverId: string | null; flagged: FlaggedMatch[] }> {
   const { giverId, flagged } = await resolveGiver(tx, input.resolve);
+  const recordingEntityId = input.recordingEntityId ?? input.entityId;
+  const attributionEntityId = input.attributionEntityId ?? input.entityId;
 
   const [gr] = await tx<{ id: string }[]>`
     insert into public.giving_records
-      (giver_id, entity_id, giving_type_id, amount, currency, channel, transaction_date, recorded_by, note)
-    values (${giverId}, ${input.entityId}, ${input.givingTypeId}, ${input.amount}, ${input.currency},
+      (giver_id, entity_id, recording_entity_id, attribution_entity_id, giving_type_id,
+       amount, currency, channel, transaction_date, recorded_by, note)
+    values (${giverId}, ${recordingEntityId}, ${recordingEntityId}, ${attributionEntityId},
+            ${input.givingTypeId}, ${input.amount}, ${input.currency},
             ${input.channel}::public.giving_channel, ${input.transactionDate}::date, ${actorId}, ${input.note})
     returning id`;
 
@@ -356,14 +381,14 @@ export async function getGivingStatement(giverId: string, year: number) {
         where gr.giver_id = ${giverId} and extract(year from gr.transaction_date) = ${year}
         group by gt.name, gr.currency order by total desc`,
     sql`select e.name, gr.currency, sum(gr.amount) as total
-        from public.giving_records gr join public.entities e on e.id = gr.entity_id
+        from public.giving_records gr join public.entities e on e.id = gr.attribution_entity_id
         where gr.giver_id = ${giverId} and extract(year from gr.transaction_date) = ${year}
         group by e.name, gr.currency order by total desc`,
     sql`select gr.transaction_date, gt.name as type_name, e.name as entity_name,
                gr.channel, gr.amount, gr.currency
         from public.giving_records gr
         join public.giving_types gt on gt.id = gr.giving_type_id
-        join public.entities e on e.id = gr.entity_id
+        join public.entities e on e.id = gr.attribution_entity_id
         where gr.giver_id = ${giverId} and extract(year from gr.transaction_date) = ${year}
         order by gr.transaction_date`,
     sql`select gr.currency, sum(gr.amount) as total, count(*)::int as n

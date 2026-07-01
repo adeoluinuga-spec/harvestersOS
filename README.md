@@ -258,6 +258,25 @@ consolidation, with historical FX captured on ledger lines.
 - Done **International dashboard** with consolidated/statutory toggle, FX rate
   capture, transfer requests, and documentation review.
 
+## Status - Phase 11 (Reconciliation and Cash Custody)
+
+Bank activity and physical cash handling now have explicit control workflows.
+
+- Done **Bank feed foundation** for Mono/Okra/manual transaction ingestion per
+  bank account, with provider/external transaction identifiers.
+- Done **Reconciliation matches** linking bank feed transactions to immutable
+  journal entry lines with auto/manual match types and matcher audit fields.
+- Done **Auto-matching** by amount, date proximity, currency, entity, and rough
+  description similarity, with a manual review queue for unmatched feed items.
+- Done **Stale unreconciled controls** surfacing old unreconciled giving records
+  and disbursed expense payments against configurable thresholds.
+- Done **Cash count sessions** with dual-counter enforcement at the database
+  layer using a distinct `counted_by` user array.
+- Done **Cash deposits** linked to count sessions, with variance calculated by
+  trigger and non-zero variances auto-flagged for review.
+- Done **Reconciliation dashboard** with bank feed ingest, auto/manual matching,
+  cash count/deposit entry, and campus variance reporting.
+
 ## Design system
 
 | Token | Value | Usage |

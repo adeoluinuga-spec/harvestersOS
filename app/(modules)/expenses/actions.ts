@@ -92,6 +92,8 @@ export async function createRequestAction(formData: FormData) {
         whtApplicable: formData.get("wht_applicable") === "on",
         whtRate: String(formData.get("wht_rate") || "0"),
         budgetLineId,
+        relatedPartyDisclosureNote:
+          String(formData.get("related_party_disclosure_note") || "").trim() || null,
       },
       tx
     )

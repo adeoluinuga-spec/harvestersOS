@@ -49,6 +49,7 @@ export const APP_ROLES = [
   "campus_finance_officer",
   "campus_data_entry_clerk",
   "auditor",
+  "governance_officer",
   "ministry_lead",
   "event_finance_lead",
   "campus_admin",

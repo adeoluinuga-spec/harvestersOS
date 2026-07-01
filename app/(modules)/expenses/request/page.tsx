@@ -89,6 +89,12 @@ export default async function RequestPage() {
               <Field label="Description" required>
                 <Textarea name="description" required placeholder="What is being requested and why?" />
               </Field>
+              <Field label="Related-party disclosure">
+                <Textarea
+                  name="related_party_disclosure_note"
+                  placeholder="Required when the selected vendor is marked as a related party."
+                />
+              </Field>
               <div className="grid gap-4 sm:grid-cols-3">
                 <label className="flex items-center gap-2 rounded border border-paper-300 px-3 py-2 font-sans text-sm">
                   <input name="is_urgent" type="checkbox" className="h-4 w-4" />

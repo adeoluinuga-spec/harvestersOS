@@ -40,6 +40,7 @@ export type RequestRow = {
   needed_by_date: string | null;
   created_at: string;
   vendor_name: string | null;
+  related_party_disclosure_note: string | null;
 };
 
 export type ApprovalInboxRow = {
@@ -134,19 +135,23 @@ export async function createRequest(
     whtApplicable: boolean;
     whtRate: string;
     budgetLineId?: string | null;
+    relatedPartyDisclosureNote?: string | null;
   },
   exec: Exec = sql
 ) {
-  const [row] = await exec<{ id: string }[]>`
+  const relatedPartyDisclosureNote = d.relatedPartyDisclosureNote ?? null;
+  const rows = (await exec`
     insert into public.requisition_requests
       (entity_id, raised_by, raised_by_role, org_branch, raised_by_level, vendor_id, budget_line_id,
-       category, description, amount, currency, needed_by_date, is_urgent, wht_applicable, wht_rate)
+       category, description, amount, currency, needed_by_date, is_urgent, wht_applicable, wht_rate,
+       related_party_disclosure_note)
     values
       (${d.entityId}, ${d.raisedBy}, ${d.raisedByRole}::public.app_role,
        ${d.orgBranch}::public.org_branch, ${d.raisedByLevel}::public.raised_by_level,
        ${d.vendorId}, ${d.budgetLineId ?? null}, ${d.category}, ${d.description}, ${d.amount}, ${d.currency},
-       ${d.neededBy}::date, ${d.urgent}, ${d.whtApplicable}, ${d.whtRate})
-    returning id`;
+       ${d.neededBy}::date, ${d.urgent}, ${d.whtApplicable}, ${d.whtRate}, ${relatedPartyDisclosureNote})
+    returning id`) as { id: string }[];
+  const [row] = rows;
   if (d.urgent) {
     await exec`select public.generate_requisition_approvals(null, ${row.id})`;
   }
@@ -158,7 +163,8 @@ export async function getRequests(scope: Scope, limit = 50): Promise<RequestRow[
     select rr.id, rr.entity_id, e.name as entity_name, u.email as raised_by_email,
            rr.category, rr.description, rr.amount, rr.net_payable_amount,
            rr.wht_withheld_amount, rr.currency, rr.status, rr.is_urgent,
-           rr.needed_by_date, rr.created_at, v.name as vendor_name
+           rr.needed_by_date, rr.created_at, v.name as vendor_name,
+           rr.related_party_disclosure_note
     from public.requisition_requests rr
     join public.entities e on e.id = rr.entity_id
     left join auth.users u on u.id = rr.raised_by
@@ -173,7 +179,8 @@ export async function getMyRequests(userId: string): Promise<RequestRow[]> {
     select rr.id, rr.entity_id, e.name as entity_name, u.email as raised_by_email,
            rr.category, rr.description, rr.amount, rr.net_payable_amount,
            rr.wht_withheld_amount, rr.currency, rr.status, rr.is_urgent,
-           rr.needed_by_date, rr.created_at, v.name as vendor_name
+           rr.needed_by_date, rr.created_at, v.name as vendor_name,
+           rr.related_party_disclosure_note
     from public.requisition_requests rr
     join public.entities e on e.id = rr.entity_id
     left join auth.users u on u.id = rr.raised_by
@@ -187,7 +194,8 @@ export async function getCompileQueue(scope: Scope) {
     select rr.id, rr.entity_id, e.name as entity_name, u.email as raised_by_email,
            rr.category, rr.description, rr.amount, rr.net_payable_amount,
            rr.wht_withheld_amount, rr.currency, rr.status, rr.is_urgent,
-           rr.needed_by_date, rr.created_at, v.name as vendor_name
+           rr.needed_by_date, rr.created_at, v.name as vendor_name,
+           rr.related_party_disclosure_note
     from public.requisition_requests rr
     join public.entities e on e.id = rr.entity_id
     left join auth.users u on u.id = rr.raised_by

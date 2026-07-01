@@ -277,6 +277,26 @@ Bank activity and physical cash handling now have explicit control workflows.
 - Done **Reconciliation dashboard** with bank feed ingest, auto/manual matching,
   cash count/deposit entry, and campus variance reporting.
 
+## Status - Phase 12 (Compliance and Governance)
+
+Governance reporting now sits across givings, expenses, WHT, audit, vendors,
+and sensitive reporting channels.
+
+- Done **NFIU large-cash awareness** via a configurable threshold view for cash
+  givings and cash expense movements.
+- Done **SCUML compliance log** per legal entity with registration status,
+  filing dates, and reviewer tracking.
+- Done **WHT remittance dashboard** by entity and month, showing owed,
+  remitted, outstanding, and overdue status.
+- Done **Related-party enforcement** requiring disclosure notes for related-party
+  vendor requisitions, with automatic higher-tier CFO/Board routing.
+- Done **Related-party disclosure register** and conflict-of-interest registry
+  for board/trustee reporting.
+- Done **Whistleblower channel** with anonymous submissions and governance-only
+  visibility, separate from ordinary finance access.
+- Done **Audit log viewer** with entity/action/date filters plus CSV export and
+  print/PDF-friendly audit output.
+
 ## Design system
 
 | Token | Value | Usage |

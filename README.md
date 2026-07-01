@@ -196,6 +196,23 @@ Restricted fund rules are enforced explicitly instead of relying on convention.
 - ✅ **Investments tracking** for fixed deposits, treasury bills, and other
   instruments with maturity alerts and expected-vs-actual yield reporting.
 
+## Status — Phase 8 (Events)
+
+Events now operate as temporary cost-center entities with their own mini-P&L.
+
+- ✅ **Event details** attached to Phase 1 `event` entities, including host,
+  event type, attendee count, dates, and lifecycle status.
+- ✅ **Revenue and cost entry** for tickets, sponsorships, exhibitor fees,
+  giving, merchandise, venue, logistics, honorariums, hospitality, staffing, and
+  production/simulcast costs.
+- ✅ **Cost sharing** per cost line by percentage or fixed amount across
+  contributing entities.
+- ✅ **Giving attribution rules** per event: host, giver home entity, or split.
+- ✅ **Lightweight event inventory** for stocked, sold, returned, adjusted, and
+  unsold merchandise/books.
+- ✅ **Close-out report** with revenue, cost, net position, cost per attendee,
+  inventory close-out, and historical comparison by event type.
+
 ## Design system
 
 | Token | Value | Usage |

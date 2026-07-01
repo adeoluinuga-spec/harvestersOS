@@ -297,6 +297,33 @@ and sensitive reporting channels.
 - Done **Audit log viewer** with entity/action/date filters plus CSV export and
   print/PDF-friendly audit output.
 
+## Test Access Seed
+
+The test hierarchy and placeholder accounts can be recreated idempotently with:
+
+```bash
+node --env-file=.env.local scripts/db-run.mjs supabase/migrations/0016_seeded_role_slots.sql
+node --env-file=.env.local scripts/seed-test-accounts.mjs
+```
+
+Primary login:
+
+- `admin@harvestersng.org`
+- Password: `Test1234!`
+
+Seeded placeholder pattern:
+
+- Executive: `globalleadpastor@harvestersng.org`, `cfo@harvestersng.org`
+- Groups: `grp1pastor@harvestersng.org` through `grp4pastor@harvestersng.org`
+- Group accountants: `grp1accountant@harvestersng.org` through `grp4accountant@harvestersng.org`
+- Subgroup accountants: `grp{group}sub{subgroup}accountant@harvestersng.org`
+- Campus admins: `grp{group}sub{subgroup}campus{campus}admin@harvestersng.org`
+- Ministry heads: `nlphead@harvestersng.org`, `haefhead@harvestersng.org`
+
+All seeded accounts use `Test1234!`. The `seeded_role_slots` table records each
+placeholder office/cadre so the CFO or CFO designate can later replace the
+placeholder user with the real person while keeping the intended role scope.
+
 ## Design system
 
 | Token | Value | Usage |

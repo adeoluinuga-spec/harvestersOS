@@ -181,6 +181,21 @@ visibility.
 - ✅ **Requisition integration** with budget-line selection and over-budget
   warnings/blocks based on the selected entity's policy.
 
+## Status — Phase 7 (Fund Accounting and Investments)
+
+Restricted fund rules are enforced explicitly instead of relying on convention.
+
+- ✅ **Named restricted funds** with target amounts, purpose, entity ownership,
+  and balances derived from posted ledger lines.
+- ✅ **Allowed-use whitelist** for temporarily/permanently restricted funds;
+  restricted expense debits are checked before ledger lines can post.
+- ✅ **Restricted activity dashboard** showing balance, target, percent funded,
+  allowed uses, and recent ledger activity.
+- ✅ **Formal inter-fund/inter-entity loans** so borrowing from a fund/entity is
+  documented instead of hidden as an informal transfer.
+- ✅ **Investments tracking** for fixed deposits, treasury bills, and other
+  instruments with maturity alerts and expected-vs-actual yield reporting.
+
 ## Design system
 
 | Token | Value | Usage |

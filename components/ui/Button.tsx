@@ -11,15 +11,14 @@ export interface ButtonProps
 }
 
 const variants: Record<Variant, string> = {
-  // Black fill — the primary action treatment
   primary:
-    "bg-ink text-paper border border-ink hover:bg-ink-800 active:bg-ink-900",
-  // White with hairline — secondary
+    "border border-ink bg-ink text-paper shadow-[0_12px_28px_rgba(7,7,7,0.22)] hover:bg-ink-800 hover:shadow-lift active:bg-ink-950",
   secondary:
-    "bg-paper text-ink border border-silver hover:border-ink hover:bg-paper-50",
-  ghost: "bg-transparent text-ink border border-transparent hover:bg-paper-100",
+    "border border-champagne/60 bg-paper text-ink shadow-card hover:border-champagne hover:bg-paper-50 hover:shadow-lift",
+  ghost:
+    "border border-transparent bg-transparent text-ink hover:bg-paper-100 hover:text-ink-950",
   danger:
-    "bg-paper text-status-danger border border-status-danger/40 hover:bg-status-danger-bg",
+    "border border-status-danger/40 bg-paper text-status-danger hover:bg-status-danger-bg",
 };
 
 const sizes: Record<Size, string> = {
@@ -33,7 +32,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded font-sans font-medium tracking-tight transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-md font-sans font-semibold tracking-tight transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50",
         variants[variant],
         sizes[size],
         className

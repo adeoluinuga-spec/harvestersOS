@@ -53,7 +53,7 @@ export function Label({
 }
 
 const controlBase =
-  "w-full rounded border border-paper-300 bg-paper px-3 py-2 font-sans text-sm text-ink placeholder:text-ink-300 transition-colors focus:border-ink focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-paper-50";
+  "w-full rounded-md border border-paper-300 bg-paper/90 px-3 py-2 font-sans text-sm text-ink shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] placeholder:text-ink-300 transition-all focus:border-champagne focus:bg-surface focus:shadow-card focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:bg-paper-50";
 
 export const Input = forwardRef<
   HTMLInputElement,

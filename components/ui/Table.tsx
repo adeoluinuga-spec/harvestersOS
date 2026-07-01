@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 
-/** Editorial data table — hairline rules, generous rows, no zebra noise. */
 export function Table({
   className,
   ...props
@@ -36,7 +35,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        "border-b border-paper-200 transition-colors hover:bg-paper-50",
+        "border-b border-paper-200/80 transition-colors hover:bg-champagne-light/35",
         className
       )}
       {...props}
@@ -51,7 +50,7 @@ export function TableHeaderCell({
   return (
     <th
       className={cn(
-        "border-b border-silver px-4 py-3 font-sans text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground",
+        "border-b border-champagne/35 px-4 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground",
         className
       )}
       {...props}

@@ -2,87 +2,101 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  Building2,
+  CalendarDays,
+  FileBarChart2,
+  Gauge,
+  Globe2,
+  HandCoins,
+  Landmark,
+  LayoutDashboard,
+  LineChart,
+  LockKeyhole,
+  PiggyBank,
+  ReceiptText,
+  ShieldCheck,
+  Sparkles,
+  UsersRound,
+} from "lucide-react";
 import { NAV_SECTIONS } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-type SidebarProps = {
-  collapsed: boolean;
-  onToggle: () => void;
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "/": LayoutDashboard,
+  "/givings": HandCoins,
+  "/expenses": ReceiptText,
+  "/payroll": UsersRound,
+  "/budgeting": BarChart3,
+  "/funds": PiggyBank,
+  "/events": CalendarDays,
+  "/next-level-prayers": Sparkles,
+  "/international": Globe2,
+  "/governance": ShieldCheck,
+  "/reconciliation": Landmark,
+  "/analytics": LineChart,
+  "/reports": FileBarChart2,
+  "/admin": LockKeyhole,
 };
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
-
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <aside
-      data-collapsed={collapsed}
-      className={cn(
-        "sticky top-0 flex h-screen shrink-0 flex-col border-r border-silver-light bg-ink text-paper transition-[width] duration-200 ease-out",
-        collapsed ? "w-16" : "w-64"
-      )}
-    >
-      {/* Brand / wordmark */}
-      <div
-        className={cn(
-          "flex h-16 items-center border-b border-ink-700 px-4",
-          collapsed && "justify-center px-0"
-        )}
-      >
-        {collapsed ? (
-          <span className="font-display text-lg tracking-display">H</span>
-        ) : (
-          <div className="leading-tight">
-            <div className="font-display text-sm tracking-display text-paper">
-              HARVESTERS
-            </div>
-            <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-silver">
-              Finance OS
-            </div>
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 flex-col overflow-hidden bg-ink text-paper shadow-overlay lg:flex">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(200,169,106,0.24),transparent_18rem)]" />
+      <div className="relative flex h-24 items-center gap-3 border-b border-white/10 px-6">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg border border-champagne/50 bg-white/5 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+          <Building2 className="h-6 w-6 text-champagne" />
+        </div>
+        <div className="leading-tight">
+          <div className="font-display text-2xl font-semibold text-paper">
+            Harvesters
           </div>
-        )}
+          <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.18em] text-champagne">
+            Finance OS
+          </div>
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4">
+      <nav className="relative flex-1 overflow-y-auto px-4 py-5">
         {NAV_SECTIONS.map((section) => (
-          <div key={section.heading} className="mb-5">
-            {!collapsed && (
-              <div className="px-4 pb-2 font-sans text-[10px] font-semibold uppercase tracking-[0.16em] text-ink-300">
-                {section.heading}
-              </div>
-            )}
-            <ul className="space-y-0.5 px-2">
+          <div key={section.heading} className="mb-6">
+            <div className="px-3 pb-2 font-sans text-[10px] font-bold uppercase tracking-[0.16em] text-white/42">
+              {section.heading}
+            </div>
+            <ul className="space-y-1.5">
               {section.items.map((item) => {
                 const active = isActive(item.href);
+                const Icon = ICONS[item.href] ?? Gauge;
                 return (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      title={collapsed ? item.label : undefined}
                       className={cn(
-                        "group relative flex items-center gap-3 rounded px-2 py-2 font-sans text-sm transition-colors",
-                        collapsed && "justify-center px-0",
+                        "group relative flex items-center gap-3 rounded-lg px-3 py-3 font-sans text-sm font-semibold transition-all duration-200",
                         active
-                          ? "bg-ink-800 text-paper"
-                          : "text-ink-300 hover:bg-ink-800/60 hover:text-paper"
+                          ? "bg-paper text-ink shadow-[0_18px_36px_rgba(0,0,0,0.28)]"
+                          : "text-paper/72 hover:bg-white/8 hover:text-paper"
                       )}
                     >
-                      {/* Silver active indicator — the accent's sanctioned use */}
-                      {active && (
-                        <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-silver" />
-                      )}
                       <span
                         className={cn(
-                          "flex h-5 w-5 shrink-0 items-center justify-center text-[11px] font-semibold",
-                          active ? "text-silver" : "text-ink-400 group-hover:text-silver"
+                          "flex h-9 w-9 items-center justify-center rounded-md border transition-all duration-200",
+                          active
+                            ? "border-champagne/45 bg-champagne-light text-ink"
+                            : "border-white/10 bg-white/5 text-champagne group-hover:border-champagne/35 group-hover:bg-white/10"
                         )}
                       >
-                        {item.glyph}
+                        <Icon className="h-[18px] w-[18px]" />
                       </span>
-                      {!collapsed && <span className="truncate">{item.label}</span>}
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {active && (
+                        <span className="h-2 w-2 rounded-full bg-champagne shadow-[0_0_0_4px_rgba(200,169,106,0.18)]" />
+                      )}
                     </Link>
                   </li>
                 );
@@ -92,19 +106,16 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Collapse toggle */}
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        className={cn(
-          "flex h-12 items-center gap-3 border-t border-ink-700 px-4 font-sans text-xs text-ink-300 transition-colors hover:text-paper",
-          collapsed && "justify-center px-0"
-        )}
-      >
-        <span className="text-base leading-none">{collapsed ? "»" : "«"}</span>
-        {!collapsed && <span>Collapse</span>}
-      </button>
+      <div className="relative border-t border-white/10 p-5">
+        <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
+          <div className="font-display text-xl font-semibold text-paper">
+            Stewardship
+          </div>
+          <p className="mt-1 font-sans text-xs leading-relaxed text-paper/58">
+            Ledger truth, governance clarity, and ministry intelligence.
+          </p>
+        </div>
+      </div>
     </aside>
   );
 }

@@ -1,5 +1,22 @@
 import Link from "next/link";
 import {
+  ArrowUpRight,
+  BarChart3,
+  Building2,
+  CalendarDays,
+  FileBarChart2,
+  Globe2,
+  HandCoins,
+  Landmark,
+  LineChart,
+  LockKeyhole,
+  PiggyBank,
+  ReceiptText,
+  ShieldCheck,
+  Sparkles,
+  UsersRound,
+} from "lucide-react";
+import {
   Badge,
   Card,
   CardContent,
@@ -21,6 +38,22 @@ import { getExecutiveDashboard, type ReportRow } from "@/lib/reporting";
 
 export const dynamic = "force-dynamic";
 
+const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "/givings": HandCoins,
+  "/expenses": ReceiptText,
+  "/payroll": UsersRound,
+  "/budgeting": BarChart3,
+  "/funds": PiggyBank,
+  "/events": CalendarDays,
+  "/next-level-prayers": Sparkles,
+  "/international": Globe2,
+  "/governance": ShieldCheck,
+  "/reconciliation": Landmark,
+  "/analytics": LineChart,
+  "/reports": FileBarChart2,
+  "/admin": LockKeyhole,
+};
+
 export default async function DashboardPage() {
   const ctx = await requireUser();
   const modules = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.href !== "/");
@@ -36,19 +69,23 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <section className="relative overflow-hidden rounded-xl bg-ink px-6 py-7 text-paper shadow-lift sm:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,169,106,0.28),transparent_24rem)]" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-champagne">
             Harvesters International Christian Centre
           </div>
-          <h2 className="font-display text-4xl tracking-display text-ink">Executive dashboard</h2>
-          <p className="max-w-3xl font-sans text-sm leading-relaxed text-muted-foreground">
+          <h2 className="font-display text-5xl font-semibold tracking-display text-paper">Executive dashboard</h2>
+          <p className="max-w-3xl font-sans text-sm leading-relaxed text-paper/68">
             Consolidated giving, budget health, fund stewardship, approvals, compliance attention, and investment maturities.
           </p>
         </div>
-        <Link href="/reports" className="font-sans text-sm text-muted-foreground hover:text-ink">
+        <Link href="/reports" className="inline-flex h-11 items-center gap-2 rounded-md border border-champagne/55 bg-paper px-4 font-sans text-sm font-bold text-ink shadow-lift transition-all hover:-translate-y-0.5">
           Build board report
+          <ArrowUpRight className="h-4 w-4" />
         </Link>
+        </div>
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
@@ -185,10 +222,10 @@ function ModuleLauncher({
     <div className={compact ? "space-y-4" : "mx-auto max-w-5xl space-y-8"}>
       {!compact && (
         <section className="space-y-3">
-          <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-champagne-dark">
             Harvesters International Christian Centre
           </div>
-          <h2 className="font-display text-4xl tracking-display text-ink">Finance OS</h2>
+          <h2 className="font-display text-5xl font-semibold tracking-display text-ink">Finance OS</h2>
           <p className="max-w-2xl font-sans text-sm leading-relaxed text-muted-foreground">
             A ledger-grade financial operating system. Every module posts to one immutable, append-only double-entry ledger.
           </p>
@@ -199,17 +236,21 @@ function ModuleLauncher({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {modules.map((m) => (
             <Link key={m.href} href={m.href} className="group">
-              <Card className="h-full transition-colors group-hover:border-ink">
+              <Card className="h-full overflow-hidden transition-all duration-200 group-hover:-translate-y-1 group-hover:border-champagne group-hover:shadow-lift">
                 <CardHeader className="border-b-0 pb-0">
                   <div className="flex items-center gap-3">
-                    <span className="flex h-9 w-9 items-center justify-center rounded border border-paper-200 bg-paper-50 font-display text-xs text-ink">
-                      {m.glyph}
+                    <span className="flex h-11 w-11 items-center justify-center rounded-lg border border-champagne/35 bg-champagne-light text-ink shadow-card">
+                      {(() => {
+                        const Icon = MODULE_ICONS[m.href] ?? Building2;
+                        return <Icon className="h-5 w-5" />;
+                      })()}
                     </span>
-                    <CardTitle className="text-sm">{m.label}</CardTitle>
+                    <CardTitle className="text-xl">{m.label}</CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="pt-3">
+                <CardContent className="flex items-center justify-between pt-3">
                   <CardDescription>Open module</CardDescription>
+                  <ArrowUpRight className="h-4 w-4 text-champagne-dark transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </CardContent>
               </Card>
             </Link>

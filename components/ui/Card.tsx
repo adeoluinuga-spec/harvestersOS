@@ -7,7 +7,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-md border border-paper-200 bg-surface shadow-card",
+        "premium-panel rounded-lg border border-paper-200/80 bg-surface shadow-card ring-1 ring-white/70",
         className
       )}
       {...props}
@@ -22,7 +22,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-4 border-b border-paper-200 px-5 py-4",
+        "flex items-start justify-between gap-4 border-b border-paper-200/80 px-5 py-4",
         className
       )}
       {...props}
@@ -37,7 +37,7 @@ export function CardTitle({
   return (
     <h3
       className={cn(
-        "font-display text-base tracking-display text-ink",
+        "font-display text-xl font-semibold tracking-display text-ink",
         className
       )}
       {...props}

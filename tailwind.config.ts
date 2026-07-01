@@ -1,17 +1,5 @@
 import type { Config } from "tailwindcss";
 
-/**
- * Harvesters Finance OS — Design System
- * -------------------------------------
- * Strict monochrome, editorial, high-contrast.
- *   • ink    — black family (primary)
- *   • paper  — white family (surfaces)
- *   • silver — ACCENT ONLY: dividers, active states, highlights. Never a primary fill.
- *
- * No default SaaS blue/purple anywhere. The only chromatic values are the
- * intentionally desaturated, editorial status colors used exclusively for
- * approval/ledger-state semantics (pills/badges) — not for UI chrome.
- */
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -21,7 +9,6 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Semantic tokens (resolve to CSS vars set in globals.css)
         background: "var(--background)",
         foreground: "var(--foreground)",
         surface: "var(--surface)",
@@ -29,76 +16,88 @@ const config: Config = {
         muted: "var(--muted)",
         "muted-foreground": "var(--muted-foreground)",
 
-        // Black family — the primary palette
         ink: {
-          DEFAULT: "#0A0A0A",
-          950: "#050505",
-          900: "#0A0A0A",
-          800: "#161616",
-          700: "#232323",
-          600: "#333333",
-          500: "#4D4D4D",
-          400: "#6B6B6B",
-          300: "#8F8F8F",
+          DEFAULT: "#070707",
+          950: "#020202",
+          900: "#070707",
+          800: "#101010",
+          700: "#1D1A17",
+          600: "#302A24",
+          500: "#4B443B",
+          400: "#6B6258",
+          300: "#958C80",
         },
 
-        // White family — surfaces
         paper: {
-          DEFAULT: "#FFFFFF",
-          50: "#FAFAFA",
-          100: "#F4F4F4",
-          200: "#EAEAEA",
-          300: "#DCDCDC",
+          DEFAULT: "#FFFEFA",
+          50: "#FFFDF7",
+          100: "#F7F3EA",
+          200: "#E9DFCF",
+          300: "#D9CCBA",
         },
 
-        // Silver — ACCENT ONLY
         silver: {
-          DEFAULT: "#C0C0C0",
-          light: "#D4D4D4",
-          dark: "#A8A8A8",
+          DEFAULT: "#C8A96A",
+          light: "#EADFCB",
+          dark: "#9B7A36",
         },
 
-        // Editorial status palette — desaturated, used only for state semantics
+        champagne: {
+          DEFAULT: "#C8A96A",
+          light: "#F3E7CD",
+          dark: "#8C6722",
+        },
+
+        emerald: {
+          DEFAULT: "#0D6B57",
+          light: "#E7F2EF",
+          dark: "#083F35",
+        },
+
+        cobalt: {
+          DEFAULT: "#233F8F",
+          light: "#E8ECFA",
+          dark: "#14275C",
+        },
+
         status: {
-          success: "#1F6F43",
-          "success-bg": "#EFF4F1",
-          warning: "#8A6D1F",
-          "warning-bg": "#F6F2E9",
+          success: "#0D6B57",
+          "success-bg": "#E7F2EF",
+          warning: "#8C6722",
+          "warning-bg": "#F8F0DD",
           danger: "#8B2B2B",
           "danger-bg": "#F6EDED",
-          neutral: "#4D4D4D",
-          "neutral-bg": "#F2F2F2",
+          neutral: "#4B443B",
+          "neutral-bg": "#F2EDE4",
         },
       },
       fontFamily: {
-        // Futura (or closest available) — headings & display
         display: ["var(--font-display)"],
-        // Montserrat — body, labels, UI chrome
-        sans: ["var(--font-montserrat)", "system-ui", "sans-serif"],
-        body: ["var(--font-montserrat)", "system-ui", "sans-serif"],
+        sans: ["var(--font-ui)"],
+        body: ["var(--font-ui)"],
       },
       letterSpacing: {
-        // Futura reads best with slightly open tracking on display text
-        display: "0.02em",
-        "display-tight": "-0.01em",
+        display: "0",
+        "display-tight": "0",
       },
       borderColor: {
         DEFAULT: "var(--border)",
       },
       borderRadius: {
-        sm: "2px",
-        DEFAULT: "3px",
-        md: "4px",
-        lg: "6px",
+        sm: "5px",
+        DEFAULT: "7px",
+        md: "8px",
+        lg: "10px",
       },
       boxShadow: {
-        // Restrained, neutral shadows — no colored glows
-        card: "0 1px 2px rgba(10,10,10,0.05), 0 1px 3px rgba(10,10,10,0.04)",
-        overlay: "0 10px 40px rgba(10,10,10,0.18)",
-        "focus-ring": "0 0 0 2px #FFFFFF, 0 0 0 4px #0A0A0A",
+        card: "0 16px 45px rgba(20,16,10,0.10), 0 2px 8px rgba(20,16,10,0.08)",
+        lift: "0 24px 70px rgba(10,10,10,0.18), 0 8px 18px rgba(200,169,106,0.10)",
+        overlay: "0 28px 80px rgba(10,10,10,0.24)",
+        "focus-ring": "0 0 0 2px #FFFEFA, 0 0 0 4px #C8A96A",
       },
     },
   },
   plugins: [],
 };
+
 export default config;

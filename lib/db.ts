@@ -23,3 +23,21 @@ export const sql =
   });
 
 if (process.env.NODE_ENV !== "production") globalForDb.__hfos_sql = sql;
+
+/** A postgres.js executor (the base client or a transaction). */
+export type Exec = typeof sql;
+
+/**
+ * Run `fn` inside a transaction with the audit actor set, so the automatic
+ * audit trigger records who performed each write. All admin mutations go
+ * through this. Pass the resulting `tx` to repo write functions.
+ */
+export async function withActor<T>(
+  userId: string | null,
+  fn: (tx: Exec) => Promise<T>
+): Promise<T> {
+  return sql.begin(async (tx) => {
+    if (userId) await tx`select set_config('app.current_user_id', ${userId}, true)`;
+    return fn(tx as unknown as Exec);
+  }) as Promise<T>;
+}

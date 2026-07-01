@@ -39,6 +39,26 @@ export const ACCOUNT_PURPOSES = [
   "other",
 ] as const;
 
+export const APP_ROLES = [
+  "super_admin",
+  "group_finance_officer",
+  "sub_group_pastor",
+  "sub_group_finance_officer",
+  "campus_pastor",
+  "campus_finance_officer",
+  "campus_data_entry_clerk",
+  "auditor",
+  "ministry_lead",
+  "event_finance_lead",
+] as const;
+
+/** Roles that are global (no entity scope); all others require an entity_id. */
+export const GLOBAL_ROLES = ["super_admin", "auditor"] as const;
+
+export type AppRole = (typeof APP_ROLES)[number];
+export const isGlobalRole = (r: string): boolean =>
+  (GLOBAL_ROLES as readonly string[]).includes(r);
+
 export type EntityType = (typeof ENTITY_TYPES)[number];
 export type LegalStatus = (typeof LEGAL_STATUSES)[number];
 export type AccountType = (typeof ACCOUNT_TYPES)[number];

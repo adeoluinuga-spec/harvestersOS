@@ -14,6 +14,7 @@ import {
 } from "@/components/ui";
 import { getEntities, getEntityOptions } from "@/lib/repo";
 import { humanize } from "@/lib/enums";
+import { requireUser } from "@/lib/auth";
 import { EntityForm } from "../_components/EntityForm";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,13 @@ const INDENT: Record<string, string> = {
 };
 
 export default async function EntitiesPage() {
-  const [rows, parents] = await Promise.all([getEntities(), getEntityOptions()]);
+  const ctx = await requireUser();
+  const scope =
+    ctx.isSuperAdmin || ctx.isAuditor ? "all" : ctx.accessibleEntityIds;
+  const [rows, parents] = await Promise.all([
+    getEntities(scope),
+    getEntityOptions(),
+  ]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -99,14 +106,16 @@ export default async function EntitiesPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create entity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <EntityForm parents={parents} />
-        </CardContent>
-      </Card>
+      {ctx.isSuperAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create entity</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EntityForm parents={parents} />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

@@ -6,26 +6,37 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui";
+import { requireUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Admin landing — internal tooling to inspect and build the foundational data
- * model (entities + chart of accounts). Not the main dashboard.
+ * model (entities + chart of accounts) and manage access. Not the main dashboard.
  */
-export default function AdminPage() {
+export default async function AdminPage() {
+  const ctx = await requireUser();
+
   const links = [
     {
       href: "/admin/entities",
       title: "Entities",
       desc: "View and create the org hierarchy — Group, Sub-Groups, Campuses, Ministry Expressions, and Events.",
+      show: true,
     },
     {
       href: "/admin/accounts",
       title: "Chart of Accounts",
       desc: "View and create the global chart of accounts shared across every entity.",
+      show: true,
     },
-  ];
+    {
+      href: "/admin/access",
+      title: "Access & Roles",
+      desc: "Assign users to entities and roles. Super administrators only.",
+      show: ctx.isSuperAdmin,
+    },
+  ].filter((l) => l.show);
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">

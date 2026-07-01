@@ -49,6 +49,41 @@ full RLS from the start.
 - ✅ Verified: `scripts/test-ledger.mjs` (15 integrity assertions) +
   `scripts/rls-check.mjs`.
 
+## Status — Phase 2 (Auth + role-based access)
+
+Supabase Auth with entity-scoped RBAC, segregation of duties, and automatic
+audit logging.
+
+- ✅ **Login / signup** ([`/login`](app/login/page.tsx)) with session-refresh
+  middleware guarding every route; sign-out in the top bar. Internal-tool
+  convenience: new users auto-confirm (no SMTP) and the **first registered user
+  bootstraps as global super_admin**.
+- ✅ **Roles mirror the hierarchy** — `user_entity_roles(user_id, entity_id,
+  role, granted_by, granted_at)`. Scoped roles are tied to specific entities and
+  **cascade to descendants** (a sub-group finance officer sees its campuses);
+  `super_admin` and `auditor` are global. A check constraint enforces
+  global-only-vs-entity-scoped.
+- ✅ **Segregation of duties** — the creator of a draft cannot post it. Enforced
+  in the app before approving (durably logs the attempt via `log_sod_violation`,
+  then refuses) **and** as a hard DB backstop in `post_journal_entry`.
+- ✅ **Entity-scoped guards** — middleware (coarse auth gate) + server helpers
+  (`requireUser`, `requireSuperAdmin`, `accessible_entity_ids`) that scope what
+  each user sees/does; RLS policies mirror the same functions for direct client
+  reads.
+- ✅ **Automatic audit log** — one reusable trigger (`app_private.tg_audit`) on
+  every table captures create/update/approve/reverse/delete with actor,
+  timestamp, entity, and before/after JSON snapshots. Modules never call it. The
+  actor is resolved from a transaction-local setting (`withActor`) since writes
+  use the owner connection.
+- ✅ **Super-admin access screen** ([`/admin/access`](app/\(modules\)/admin/access/page.tsx))
+  to assign and revoke user↔entity↔role.
+- ✅ Verified: `scripts/test-auth.mjs` (14 assertions — cascade, SoD, audit),
+  `scripts/test-signup.mjs` (real Supabase Auth signup → bootstrap chain).
+
+> **First-run:** open `/login`, create your account (you become super_admin),
+> then use `/admin/access` to invite/assign everyone else. Have others sign up
+> first so they appear in the user picker.
+
 ### Database
 
 Migrations live in [`supabase/migrations`](./supabase/migrations); seed in

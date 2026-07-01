@@ -14,11 +14,13 @@ import {
 } from "@/components/ui";
 import { getAccounts } from "@/lib/repo";
 import { humanize } from "@/lib/enums";
+import { requireUser } from "@/lib/auth";
 import { AccountForm } from "../_components/AccountForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountsPage() {
+  const ctx = await requireUser();
   const rows = await getAccounts();
 
   return (
@@ -72,14 +74,16 @@ export default async function AccountsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Create account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <AccountForm />
-        </CardContent>
-      </Card>
+      {ctx.isSuperAdmin && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Create account</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AccountForm />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

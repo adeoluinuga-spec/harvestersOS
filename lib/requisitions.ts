@@ -133,17 +133,18 @@ export async function createRequest(
     urgent: boolean;
     whtApplicable: boolean;
     whtRate: string;
+    budgetLineId?: string | null;
   },
   exec: Exec = sql
 ) {
   const [row] = await exec<{ id: string }[]>`
     insert into public.requisition_requests
-      (entity_id, raised_by, raised_by_role, org_branch, raised_by_level, vendor_id,
+      (entity_id, raised_by, raised_by_role, org_branch, raised_by_level, vendor_id, budget_line_id,
        category, description, amount, currency, needed_by_date, is_urgent, wht_applicable, wht_rate)
     values
       (${d.entityId}, ${d.raisedBy}, ${d.raisedByRole}::public.app_role,
        ${d.orgBranch}::public.org_branch, ${d.raisedByLevel}::public.raised_by_level,
-       ${d.vendorId}, ${d.category}, ${d.description}, ${d.amount}, ${d.currency},
+       ${d.vendorId}, ${d.budgetLineId ?? null}, ${d.category}, ${d.description}, ${d.amount}, ${d.currency},
        ${d.neededBy}::date, ${d.urgent}, ${d.whtApplicable}, ${d.whtRate})
     returning id`;
   if (d.urgent) {

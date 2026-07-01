@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Button, Card, CardContent, CardHeader, CardTitle, Field, Input, Select, Textarea } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
+import { getOpenApprovedBudgetLines } from "@/lib/budgeting";
+import { money } from "@/lib/format";
 import { getRequisitionEntities, getVendors } from "@/lib/requisitions";
 import { createRequestAction, createVendorAction } from "../actions";
 
@@ -9,7 +11,11 @@ export const dynamic = "force-dynamic";
 export default async function RequestPage() {
   const ctx = await requireUser();
   const scope = ctx.isSuperAdmin || ctx.isAuditor ? "all" : ctx.accessibleEntityIds;
-  const [entities, vendors] = await Promise.all([getRequisitionEntities(scope), getVendors()]);
+  const [entities, vendors, budgetLines] = await Promise.all([
+    getRequisitionEntities(scope),
+    getVendors(),
+    getOpenApprovedBudgetLines(scope),
+  ]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -60,6 +66,16 @@ export default async function RequestPage() {
                     ))}
                   </Select>
                 </Field>
+                <Field label="Budget line">
+                  <Select name="budget_line_id">
+                    <option value="">No budget line</option>
+                    {budgetLines.map((b: Record<string, string>) => (
+                      <option key={b.id} value={b.id}>
+                        {b.fiscal_year} · {b.entity_name} · {b.account_code} · {b.account_name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
                 <Field label="Category" required>
                   <Input name="category" placeholder="Operations, welfare, capital expenditure" required />
                 </Field>
@@ -104,6 +120,26 @@ export default async function RequestPage() {
               </label>
               <Button type="submit" variant="secondary">Save vendor</Button>
             </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader><CardTitle>Budget availability</CardTitle></CardHeader>
+          <CardContent className="space-y-3">
+            {budgetLines.slice(0, 8).map((b: Record<string, string>) => {
+              const remaining = Number(b.approved_amount ?? 0) - Number(b.actual_amount ?? 0);
+              return (
+                <div key={b.id} className="border-b border-paper-200 pb-3 last:border-0 last:pb-0">
+                  <div className="font-sans text-sm font-medium">{b.entity_name}</div>
+                  <div className="font-sans text-xs text-muted-foreground">
+                    {b.account_code} · approved {money(b.approved_amount)} · actual {money(b.actual_amount)} · remaining {money(String(remaining))}
+                  </div>
+                </div>
+              );
+            })}
+            {budgetLines.length === 0 && (
+              <p className="font-sans text-sm text-muted-foreground">No approved budget lines are available yet.</p>
+            )}
           </CardContent>
         </Card>
       </div>

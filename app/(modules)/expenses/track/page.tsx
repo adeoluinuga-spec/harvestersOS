@@ -7,7 +7,11 @@ import { getMyRequests } from "@/lib/requisitions";
 
 export const dynamic = "force-dynamic";
 
-export default async function TrackPage() {
+export default async function TrackPage({
+  searchParams,
+}: {
+  searchParams?: { budget?: string };
+}) {
   const ctx = await requireUser();
   const rows = await getMyRequests(ctx.user.id);
 
@@ -17,6 +21,11 @@ export default async function TrackPage() {
         <Link href="/expenses" className="font-sans text-xs text-muted-foreground hover:text-ink">Back to requisitions</Link>
         <h2 className="font-display text-3xl tracking-display text-ink">Track my requests</h2>
       </div>
+      {searchParams?.budget === "warning" && (
+        <p className="rounded border border-status-warning/30 bg-status-warning-bg px-3 py-2 font-sans text-sm text-status-warning">
+          Budget warning: the submitted requisition is projected to exceed the approved budget line.
+        </p>
+      )}
       <Card>
         <CardHeader><CardTitle>My requisitions</CardTitle></CardHeader>
         <CardContent className="p-0">

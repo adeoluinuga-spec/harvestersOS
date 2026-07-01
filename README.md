@@ -165,6 +165,22 @@ distinctions represented directly in the data model.
 - ✅ **Honorarium payments** for guest ministers and visiting speakers, with
   their own threshold approval flow and distinct `honorarium` ledger source.
 
+## Status — Phase 6 (Budgeting)
+
+Bottom-up budgeting with top-down review authority and requisition-time budget
+visibility.
+
+- ✅ **Budget cycles** with open, review, approved, and closed states.
+- ✅ **Budget lines** submitted by entity and account, preserving proposed
+  amounts separately from approved amounts and review justifications.
+- ✅ **Historical linkage** from each cycle's lines to prior-cycle lines, ready
+  for future forecasting and trend analysis.
+- ✅ **Rollup dashboard** by entity hierarchy and fund classification, showing
+  budget vs actuals derived from requisitions.
+- ✅ **Budget enforcement settings** per entity with warn, block, or none modes.
+- ✅ **Requisition integration** with budget-line selection and over-budget
+  warnings/blocks based on the selected entity's policy.
+
 ## Design system
 
 | Token | Value | Usage |

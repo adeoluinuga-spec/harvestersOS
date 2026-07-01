@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser, type AuthContext } from "@/lib/auth";
+import { checkBudgetRequisition } from "@/lib/budgeting";
 import { withActor } from "@/lib/db";
 import {
   createBatch as repoCreateBatch,
@@ -64,6 +65,15 @@ export async function createRequestAction(formData: FormData) {
   if (!entityId || !canWriteEntity(ctx, entityId)) redirect("/expenses/request?error=permission");
   const amount = Number(String(formData.get("amount") || ""));
   if (!Number.isFinite(amount) || amount <= 0) redirect("/expenses/request?error=amount");
+  const budgetLineId = String(formData.get("budget_line_id") || "") || null;
+  let budgetWarning = false;
+  if (budgetLineId) {
+    const budgetCheck = await checkBudgetRequisition(budgetLineId, String(formData.get("amount") || "0"));
+    if (budgetCheck?.exceeds_budget && budgetCheck.enforcement_mode === "block") {
+      redirect("/expenses/request?error=budget_block");
+    }
+    budgetWarning = Boolean(budgetCheck?.exceeds_budget && budgetCheck.enforcement_mode === "warn");
+  }
   await withActor(ctx.user.id, (tx) =>
     repoCreateRequest(
       {
@@ -81,13 +91,14 @@ export async function createRequestAction(formData: FormData) {
         urgent: formData.get("is_urgent") === "on",
         whtApplicable: formData.get("wht_applicable") === "on",
         whtRate: String(formData.get("wht_rate") || "0"),
+        budgetLineId,
       },
       tx
     )
   );
   revalidatePath("/expenses");
   revalidatePath("/expenses/track");
-  redirect("/expenses/track?created=1");
+  redirect(`/expenses/track?created=1${budgetWarning ? "&budget=warning" : ""}`);
 }
 
 export async function compileBatchAction(formData: FormData) {

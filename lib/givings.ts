@@ -49,6 +49,60 @@ export async function searchGivers(q: string): Promise<GiverRow[]> {
     order by full_name limit 50`;
 }
 
+/** Paginated giver search for large lists. */
+export async function searchGiversPaged(
+  q: string,
+  page: number,
+  pageSize: number
+): Promise<{ rows: GiverRow[]; total: number }> {
+  const like = `%${q}%`;
+  const where = sql`is_active and (${q} = '' or full_name ilike ${like} or phone ilike ${like} or email ilike ${like})`;
+  const [rows, count] = await Promise.all([
+    sql<GiverRow[]>`
+      select id, full_name, phone, email, primary_entity_id, is_active
+      from public.givers where ${where}
+      order by full_name limit ${pageSize} offset ${(page - 1) * pageSize}`,
+    sql<{ n: number }[]>`select count(*)::int n from public.givers where ${where}`,
+  ]);
+  return { rows, total: count[0]?.n ?? 0 };
+}
+
+/** All giver ids matching a search (for "select all matching"). */
+export async function giverIdsMatching(q: string): Promise<string[]> {
+  const like = `%${q}%`;
+  const rows = await sql<{ id: string }[]>`
+    select id from public.givers
+    where is_active and (${q} = '' or full_name ilike ${like} or phone ilike ${like} or email ilike ${like})`;
+  return rows.map((r) => r.id);
+}
+
+export async function giversForExport(ids: string[]) {
+  if (ids.length === 0) return [];
+  return sql`
+    select g.full_name, g.phone, g.email, g.date_of_birth, e.name as primary_campus, g.created_at
+    from public.givers g left join public.entities e on e.id = g.primary_entity_id
+    where g.id in ${sql(ids)} order by g.full_name`;
+}
+
+export async function giversForStatements(ids: string[], year: number) {
+  if (ids.length === 0) return [];
+  return sql<{ id: string; full_name: string; email: string; total: string; currency: string }[]>`
+    select g.id, g.full_name, g.email,
+           coalesce(sum(gr.amount), 0) as total,
+           coalesce(max(gr.currency), 'NGN') as currency
+    from public.givers g
+    left join public.giving_records gr
+      on gr.giver_id = g.id and extract(year from gr.transaction_date) = ${year}
+    where g.id in ${sql(ids)} and g.email is not null
+    group by g.id, g.full_name, g.email order by g.full_name`;
+}
+
+export async function deactivateGivers(ids: string[], exec: Exec = sql): Promise<number> {
+  if (ids.length === 0) return 0;
+  const rows = await exec`update public.givers set is_active=false where id in ${exec(ids)} returning id`;
+  return rows.length;
+}
+
 export async function getGiver(id: string): Promise<GiverRow | null> {
   const [g] = await sql<GiverRow[]>`
     select id, full_name, phone, email, primary_entity_id, is_active

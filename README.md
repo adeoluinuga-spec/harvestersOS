@@ -324,6 +324,49 @@ All seeded accounts use `Test1234!`. The `seeded_role_slots` table records each
 placeholder office/cadre so the CFO or CFO designate can later replace the
 placeholder user with the real person while keeping the intended role scope.
 
+## Data Import & Bulk Management
+
+Built for migrating a 40k+ member church and running at scale.
+
+### Spreadsheet imports (Excel + CSV)
+- One reusable pipeline (`lib/imports`) — **stage → validate (dry-run preview) →
+  commit** — behind a hub at [`/imports`](app/\(modules\)/imports/) and a
+  reusable `<ImportButton>` for any list page.
+- **12 import types**, each with a downloadable template and a data dictionary:
+  Givers/Contacts, Historical Giving, Opening Balances, Bank Statement, Chart of
+  Accounts, Vendors, Pledges, FX Rates, Investments, Staff, Restricted Funds,
+  Entities/Campuses.
+- **Ledger-safe:** financial imports post real journal entries — historical
+  giving via `post_giving_record`; **opening balances** post one balanced entry
+  per entity/date, plugged to an **Opening Balance Equity (3200)** account. No
+  parallel balances.
+- **De-duplication:** giver/contact imports reuse the Phase-3 fuzzy matcher —
+  exact phone/email resolves to the existing person, close matches queue for
+  merge review, so a migration never spawns 40k duplicates.
+- **Robust:** per-row validation with an error report, per-row commit isolation
+  (savepoints) → partial commits, idempotent staging, raw files archived to a
+  private Supabase Storage bucket (best-effort), and every batch fully audited.
+- SheetJS parses `.xlsx/.xls/.csv`.
+
+### Bulk management
+- Reusable **`<Pagination>`** + **`<BulkTable>`** (select-all-on-page and
+  **select-all-N-matching-the-filter** across entities).
+- Bulk actions on the flagship **Givers** list: **Export CSV**, **Print
+  statements**, **Email**, and **Deactivate**.
+- **Email uses the staff member's own mail app** (`mailto:` with recipients in
+  BCC) — sent from their own finance account, no third-party mail service. Large
+  selections are pointed to CSV export for mail-merge.
+- **Immutability-safe deletes:** master data is *deactivated* (history
+  preserved), staging/drafts can be removed, and posted financial records are
+  corrected via reversing entries — never hard-deleted.
+
+> The `email_outbox` table exists (from migration 0019) but delivery is handled
+> by the staff mail client via `mailto:`, not a server-side provider.
+
+### Verification
+`scripts/test-imports.mjs` (6 assertions: JSONB staging, giver dedupe,
+historical giving→ledger, opening-balance Equity plug, bank statement ingest).
+
 ## Design system
 
 | Token | Value | Usage |

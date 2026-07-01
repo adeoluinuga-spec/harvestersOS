@@ -84,6 +84,34 @@ audit logging.
 > then use `/admin/access` to invite/assign everyone else. Have others sign up
 > first so they appear in the user picker.
 
+## Status — Phase 3 (Givings)
+
+Full giving lifecycle on top of the ledger — nothing keeps a parallel balance.
+
+- ✅ **Unique giver identity** — `givers` + `giver_identifiers` (one person,
+  recorded differently across campuses, resolves to one `giver_id`). A
+  `pg_trgm` fuzzy matcher (`find_giver_matches`) resolves exact phone/email to
+  the same giver, and flags **close but non-exact** matches into a
+  **potential-duplicates review queue** instead of silently duplicating. Merge
+  unifies all history under one identity.
+- ✅ **Giving types with behaviour** — `giving_types` (tithe, offering, seed,
+  first-fruit, building-fund, missions-pledge, vow, partnership, event-offering)
+  each mapped to a default fund classification + income account.
+- ✅ **Every gift posts to the ledger** — `post_giving_record` creates a
+  balanced journal entry (debit cash/bank by channel, credit the type's income
+  account) and links it back; there is no separate giving balance.
+- ✅ **Pledges/vows as receivables** — `pledges` + `pledge_fulfillments`
+  (auto-outstanding, auto-fulfilled), with an **AR-style aging view**
+  (`pledge_aging`) bucketed against the target date.
+- ✅ **Giving statements** — per-giver, per-year, PDF-ready (printable) with
+  totals by type, by entity, and a dated transaction list.
+- ✅ **Screens** — givings dashboard, a fast batch **record-giving** screen for
+  clerks, giver search + **unified history** view (doubles as giver-facing "my
+  giving"), duplicates review queue, pledges + aging, and statements.
+- ✅ Verified: `scripts/test-givings.mjs` (18 assertions — ledger posting,
+  fuzzy match, merge, pledge aging/fulfillment, statement),
+  `scripts/test-givings-queries.mjs` (read-query schema check).
+
 ### Database
 
 Migrations live in [`supabase/migrations`](./supabase/migrations); seed in

@@ -65,6 +65,24 @@ export type AccountType = (typeof ACCOUNT_TYPES)[number];
 export type FundClassification = (typeof FUND_CLASSIFICATIONS)[number];
 export type AccountPurpose = (typeof ACCOUNT_PURPOSES)[number];
 
+export const GIVING_CHANNELS = [
+  "cash",
+  "pos",
+  "bank_transfer",
+  "online_paystack",
+  "ussd",
+  "standing_order",
+] as const;
+
+export const PLEDGE_TYPES = ["building_fund", "missions", "vow"] as const;
+
+/** Pledge type -> the giving type its payments are recorded as. */
+export const PLEDGE_TYPE_TO_GIVING_CODE: Record<string, string> = {
+  building_fund: "building_fund",
+  missions: "missions_pledge",
+  vow: "vow",
+};
+
 /** "sub_group" -> "Sub Group" */
 export const humanize = (s: string) =>
   s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());

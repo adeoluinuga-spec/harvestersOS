@@ -213,6 +213,29 @@ Events now operate as temporary cost-center entities with their own mini-P&L.
 - ✅ **Close-out report** with revenue, cost, net position, cost per attendee,
   inventory close-out, and historical comparison by event type.
 
+## Status - Phase 9 (Next Level Prayers)
+
+Next Level Prayers now has its own ministry-directorate partnership layer while
+reusing the shared giving, event, and honorarium models.
+
+- Done **Ministry Directorate entity** support via `ministry_directorate`, with
+  Next Level Prayers normalized as the special-ministry entity.
+- Done **Partner directory** where every partner resolves to a unique Phase 3
+  `giver_id`, with configurable partnership tiers and monthly commitments.
+- Done **Partnership fulfillment** through the Phase 3 `giving_records` table
+  using `giving_type = partnership`, linked back to commitments by
+  `partnership_fulfillments`.
+- Done **Lapse detection** for partners missing 2+ consecutive expected periods,
+  surfaced as an actionable lapsed-partner list.
+- Done **NLP programs** use the Phase 8 event pattern: prayer conferences,
+  prayer schools, and retreats are `event_details` rows hosted by NLP.
+- Done **Digital products** with deferred revenue schedules over the access
+  period for devotionals, courses, and subscriptions.
+- Done **Resident intercessor stipends** route through the Phase 5 honorarium
+  approval/payment path using a distinct resident-intercessor recipient type.
+- Done **NLP dashboard** with partner counts, tier breakdown, lapsed alerts,
+  financial summary, digital sales, and program activity.
+
 ## Design system
 
 | Token | Value | Usage |

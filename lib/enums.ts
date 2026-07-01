@@ -4,6 +4,7 @@ export const ENTITY_TYPES = [
   "group",
   "sub_group",
   "campus",
+  "ministry_directorate",
   "ministry_expression",
   "event",
 ] as const;

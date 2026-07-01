@@ -50,6 +50,15 @@ export const APP_ROLES = [
   "auditor",
   "ministry_lead",
   "event_finance_lead",
+  "campus_admin",
+  "group_pastor",
+  "global_lead_pastor",
+  "head_of_expression",
+  "ministry_director",
+  "cfo_coo",
+  "board_trustee",
+  "finance_processor",
+  "bank_signatory",
 ] as const;
 
 /** Roles that are global (no entity scope); all others require an entity_id. */

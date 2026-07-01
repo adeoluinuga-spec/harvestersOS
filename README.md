@@ -129,6 +129,24 @@ node --env-file=.env.local scripts/rls-check.mjs      # RLS/grants proof
 > service-role/secret key was not provided). Add `SUPABASE_SERVICE_ROLE_KEY`
 > later to switch server data access to supabase-js if preferred.
 
+## Status — Phase 4 (Requisitions and Disbursements)
+
+Full request-to-payment lifecycle replacing the manual email chain while keeping
+each stage separately trackable.
+
+- ✅ **Request intake** with vendor selection/creation, urgent flag, WHT fields,
+  branch/level routing metadata, and requester tracking.
+- ✅ **Compilation** screen for batching submitted non-urgent requests before
+  approval; urgent requests route directly into the same approval chain.
+- ✅ **Config-driven approvals** by branch and raising level, with conditional
+  Board of Trustees gate appended as the final cross-cutting approval step.
+- ✅ **Finance processing** queue for approved requests/batches, bank upload and
+  transfer-instruction references, and WHT/net payable carry-through.
+- ✅ **Slot-based signatory confirmations** plus super-admin slot/member setup
+  per bank account, supporting all-members and any-one slot models.
+- ✅ **Ledger close-out** on final disbursement: a posted expense journal entry
+  is generated only after all required signature slots are satisfied.
+
 ## Design system
 
 | Token | Value | Usage |

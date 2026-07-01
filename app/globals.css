@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Harvesters Finance OS — global tokens
+ * -------------------------------------
+ * Strict black / white with silver as a sparing accent.
+ */
+
+/*
+ * Futura self-hosted font.
+ * When the real Futura PT / Futura Std files are supplied, drop them in
+ * /public/fonts and uncomment the @font-face blocks below. The stack in
+ * --font-display already lists "Futura Harvesters" first, so it will take
+ * over automatically once these are present — no other change needed.
+ */
+/*
+@font-face {
+  font-family: "Futura Harvesters";
+  src: url("/fonts/futura-book.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Futura Harvesters";
+  src: url("/fonts/futura-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Futura Harvesters";
+  src: url("/fonts/futura-bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+*/
+
+:root {
+  /* Typography stacks.
+     --font-montserrat is injected by next/font (see app/layout.tsx).
+     Until real Futura files are supplied, fall back to the closest geometric
+     sans-serifs, then Montserrat, then system. */
+  --font-display: "Futura Harvesters", "Futura PT", "Futura Std", "Futura",
+    "Century Gothic", "Twentieth Century", var(--font-montserrat), system-ui,
+    sans-serif;
+
+  /* Semantic surface tokens */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --surface: #ffffff;
+  --muted: #f4f4f4;
+  --muted-foreground: #6b6b6b;
+  --border: #eaeaea;
+
+  /* Silver accent — dividers / active states / highlights only */
+  --accent: #c0c0c0;
+  --accent-light: #d4d4d4;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-montserrat), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    letter-spacing: 0.01em;
+    color: var(--foreground);
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Thin silver hairline — the canonical divider treatment */
+  .hairline {
+    border-color: var(--accent-light);
+  }
+}
+
+/* High-contrast, non-colored focus treatment consistent with the brand */
+:focus-visible {
+  outline: 2px solid #0a0a0a;
+  outline-offset: 2px;
+}

@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
   Field,
@@ -18,8 +19,9 @@ import {
 } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { humanize } from "@/lib/enums";
-import { money, shortDate } from "@/lib/format";
+import { compactMoney, money, shortDate } from "@/lib/format";
 import { getFundEntities, getInvestmentAlerts, getInvestments } from "@/lib/funds";
+import { getInvestmentPortfolio, type PortfolioInvestment } from "@/lib/dashboard";
 import {
   createInvestmentAction,
   refreshInvestmentAlertsAction,
@@ -31,12 +33,29 @@ export const dynamic = "force-dynamic";
 export default async function InvestmentsPage() {
   const ctx = await requireUser();
   const scope = ctx.isSuperAdmin || ctx.isAuditor ? "all" : ctx.accessibleEntityIds;
-  const [entities, investments, alerts] = await Promise.all([
+  const [entities, investments, alerts, portfolio] = await Promise.all([
     getFundEntities(scope),
     getInvestments(scope),
     getInvestmentAlerts(scope),
+    scope === "all" ? getInvestmentPortfolio() : Promise.resolve([] as PortfolioInvestment[]),
   ]);
   const today = new Date().toISOString().slice(0, 10);
+
+  // Group the portfolio: group -> sub-group -> investments.
+  const grouped = new Map<string, Map<string, PortfolioInvestment[]>>();
+  for (const inv of portfolio) {
+    const sg = inv.subgroup ?? "Group-level";
+    if (!grouped.has(inv.group)) grouped.set(inv.group, new Map());
+    const gm = grouped.get(inv.group)!;
+    if (!gm.has(sg)) gm.set(sg, []);
+    gm.get(sg)!.push(inv);
+  }
+  const groupTotal = (subs: Map<string, PortfolioInvestment[]>) =>
+    Array.from(subs.values()).reduce((sum, arr) => sum + arr.reduce((a, i) => a + i.principal, 0), 0);
+  const statusTone: Record<string, string> = {
+    active: "border-silver text-ink-600", matured: "bg-status-success-bg text-status-success border-status-success/25",
+    liquidated: "bg-ink text-paper border-ink",
+  };
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -47,6 +66,58 @@ export default async function InvestmentsPage() {
           Fixed deposits, treasury bills, maturity alerts, and yield tracking by entity.
         </p>
       </div>
+
+      {portfolio.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio by group / sub-group</CardTitle>
+            <CardDescription>
+              {portfolio.length} investments · {compactMoney(portfolio.reduce((s, i) => s + i.principal, 0))} principal
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {Array.from(grouped).map(([groupName, subs]) => (
+              <div key={groupName}>
+                <div className="mb-2 flex items-center justify-between border-b border-silver pb-1">
+                  <h4 className="font-display text-base tracking-display text-ink">{groupName}</h4>
+                  <span className="font-sans text-xs text-muted-foreground">{compactMoney(groupTotal(subs))}</span>
+                </div>
+                {Array.from(subs).map(([sgName, items]) => (
+                  <div key={sgName} className="mb-3 pl-1">
+                    <div className="mb-1 font-sans text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">{sgName}</div>
+                    <Table>
+                      <TableBody>
+                        {items.map((i) => (
+                          <TableRow key={i.id}>
+                            <TableCell>
+                              <div className="font-medium">{i.institution}</div>
+                              <div className="font-sans text-xs text-muted-foreground">{i.entity} · {humanize(i.type)} @ {i.rate}%</div>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">{money(i.principal, i.currency)}</TableCell>
+                            <TableCell>
+                              <div className="text-muted-foreground">{shortDate(i.maturity)}</div>
+                              {i.status === "active" && (
+                                <div className={i.days <= 30 ? "font-sans text-[11px] font-semibold text-status-warning" : "font-sans text-[11px] text-muted-foreground"}>
+                                  {i.days} days
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className={"inline-flex rounded-full border px-2 py-0.5 font-sans text-[11px] " + (statusTone[i.status] ?? "border-silver text-ink-600")}>
+                                {humanize(i.status)}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

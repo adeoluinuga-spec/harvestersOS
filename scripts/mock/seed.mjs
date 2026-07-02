@@ -248,8 +248,8 @@ async function run() {
 
   await seedPledges();
   await seedStaffPayroll();
+  await seedBudgets();          // before expenses so requisitions can link to budget lines
   await seedVendorsExpenses();
-  await seedBudgets();
   await seedFunds();
   await seedNlpEvents();
   await seedReconciliation();
@@ -358,10 +358,12 @@ async function seedVendorsExpenses() {
         const dt = iso(dayIn(choice(lastMonths(3))));
         const [req] = await sql`insert into public.requisition_requests
           (entity_id, raised_by, raised_by_role, org_branch, raised_by_level, vendor_id, category, description, amount, currency,
-           needed_by_date, is_urgent, wht_applicable, wht_rate, status, submitted_at)
+           needed_by_date, is_urgent, wht_applicable, wht_rate, status, submitted_at, budget_line_id)
           values (${c.id}, ${adminId}, 'campus_finance_officer', 'congregational', 'campus', ${choice(reqVendors)}, ${choice(cats)},
            ${"Requisition — " + choice(cats)}, ${amount}, ${c.currency}, ${dt}, ${chance(0.2)},
-           ${whtApplicable}, ${whtRate}, ${state}::public.requisition_status, ${dt}) returning id`;
+           ${whtApplicable}, ${whtRate}, ${state}::public.requisition_status, ${dt},
+           (select bl.id from public.budget_lines bl join public.accounts a on a.id=bl.account_id
+            where bl.entity_id=${c.id} and a.account_type='expense' order by random() limit 1)) returning id`;
         try { await sql`select public.generate_requisition_approvals(null, ${req.id})`; } catch { /* ok */ }
         if (state === "approved" || state === "disbursed")
           await sql`update public.requisition_approvals set status='approved', decided_at=now(), approver_user_id=${cfoId} where requisition_request_id=${req.id}`;
@@ -411,6 +413,14 @@ async function seedFunds() {
       const [f] = await sql`insert into public.restricted_funds (entity_id, name, fund_classification, target_amount, purpose_description, is_active)
         values (${e.id}, 'Building Project Fund', 'temporarily_restricted', ${cur === "NGN" ? 5_000_000_000 : 5_000_000}, 'New auditorium construction', true) returning id`;
       await sql`insert into public.restricted_fund_allowed_uses (restricted_fund_id, account_id) values (${f.id}, ${accounts["5010"]}), (${f.id}, ${accounts["1020"]}) on conflict do nothing`;
+      // Fund designation entries (equity move: unrestricted 3000 -> restricted 3100)
+      // give the fund a realistic balance without inflating giving/income.
+      const target = cur === "NGN" ? 5_000_000_000 : 5_000_000;
+      const perC = round2((target * rnd(0.4, 0.85)) / 4);
+      for (let k = 0; k < 4; k++)
+        await postJE(e.id, iso(dayIn(choice(lastMonths(9)))), "Restricted fund designation", "adjustment",
+          [{ account: accounts["3000"], debit: perC, currency: cur, fund: "unrestricted" },
+           { account: accounts["3100"], credit: perC, currency: cur, fund: "temporarily_restricted" }], adminId);
       if (chance(0.6))
         await sql`insert into public.investments (entity_id, investment_type, institution, principal_amount, currency, interest_rate, start_date, maturity_date, status, created_by)
           values (${e.id}, 'fixed_deposit', ${choice(["Zenith Bank", "GTBank", "Stanbic IBTC"])}, ${cur === "NGN" ? round2(rnd(100_000_000, 2_000_000_000)) : round2(rnd(200_000, 3_000_000))}, ${cur}, ${round2(rnd(8, 19))},

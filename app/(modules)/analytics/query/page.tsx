@@ -3,7 +3,7 @@ import { NaturalLanguageQuery } from "../_components/NaturalLanguageQuery";
 
 export const dynamic = "force-dynamic";
 
-export default function AnalyticsQueryPage() {
+export default function AnalyticsQueryPage({ searchParams }: { searchParams: { q?: string } }) {
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -17,7 +17,7 @@ export default function AnalyticsQueryPage() {
           Back to analytics
         </Link>
       </div>
-      <NaturalLanguageQuery />
+      <NaturalLanguageQuery initialQuestion={searchParams.q} />
     </div>
   );
 }

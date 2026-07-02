@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import {
   Button,
@@ -20,8 +21,18 @@ import { askAnalyticsAction, type AnalyticsQueryState } from "../actions";
 
 const initialState: AnalyticsQueryState = { ok: false };
 
-export function NaturalLanguageQuery() {
+export function NaturalLanguageQuery({ initialQuestion }: { initialQuestion?: string }) {
   const [state, formAction] = useFormState(askAnalyticsAction, initialState);
+  const formRef = useRef<HTMLFormElement>(null);
+  const autoRan = useRef(false);
+
+  // When arriving from a dashboard "Analyze with AI" link, run it automatically.
+  useEffect(() => {
+    if (initialQuestion && !autoRan.current) {
+      autoRan.current = true;
+      formRef.current?.requestSubmit();
+    }
+  }, [initialQuestion]);
 
   return (
     <div className="space-y-6">
@@ -30,11 +41,12 @@ export function NaturalLanguageQuery() {
           <CardTitle>Ask the ledger</CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="space-y-4">
+          <form ref={formRef} action={formAction} className="space-y-4">
             <Field label="Question" required>
               <Textarea
                 name="question"
                 required
+                defaultValue={initialQuestion}
                 placeholder="How much did Next Level Prayers spend vs budget this quarter?"
               />
             </Field>

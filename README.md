@@ -367,6 +367,47 @@ Built for migrating a 40k+ member church and running at scale.
 `scripts/test-imports.mjs` (6 assertions: JSONB staging, giver dedupe,
 historical giving→ledger, opening-balance Equity plug, bank statement ingest).
 
+## Demo / Presentation Dataset
+
+A realistic, fully-interactive dataset for leadership demos lives in
+[`scripts/mock`](./scripts/mock). It mirrors live operations across the real org
+and **every module**, and is **fully reversible in one command**.
+
+```bash
+node --env-file=.env.local scripts/mock/seed.mjs    # build the demo (~15-20 min)
+node --env-file=.env.local scripts/mock/reset.mjs   # wipe it, restoring the EXACT pre-seed state
+```
+
+**Reversibility.** The seed snapshots the pre-seed baseline; reset `TRUNCATE`s the
+transactional tables (TRUNCATE bypasses the ledger's row-level immutability guard
+by design), removes only demo entities/users, and restores archived/mutated rows
+exactly. Nothing outside the demo is touched.
+
+**What it builds** (indicative): the exact 4-group org (Group 1 International, Group
+Alpha, Group 3, Group 4) → subgroups → **41 campuses** across currencies (UK GBP,
+US USD, Australia AUD, Toronto CAD, Nigeria NGN); **~3,700 givers, ~13k gifts →
+~13k balanced journal entries** (debits = credits = **₦18.8bn**); income **~₦17bn +
+£12m + $4.4m**; payroll with PAYE (168 runs), budgets, funds & investments;
+**NLP partnerships + two prayer conferences (Nigeria ₦2.5bn, London £1.2m)**;
+requisitions → approvals → disbursements + WHT; reconciliation (bank feed +
+auto-match + dual-counter cash counts); and governance records. Every campus posts
+at the leaf, so group/subgroup/consolidated views roll up from the same ledger.
+
+**Key logins** — password `Test1234!`:
+
+| Who | Email | Sees |
+| --- | --- | --- |
+| Super admin | `admin@harvestersng.org` | Everything |
+| CFO/COO | `cfo@harvestersng.org` | Everything |
+| Pastor Dayo Ogunrombi | `dayo.ogunrombi@harvestersng.org` | Group 1 (International) |
+| Pastor Mayowa Agboade | `mayowa.agboade@harvestersng.org` | Group 2 (Alpha) |
+| Pastor Soji Pitan | `soji.pitan@harvestersng.org` | Group 3 |
+| Pastor Deji Lawal | `deji.lawal@harvestersng.org` | Group 4 |
+| NLP Director | `nlphead@harvestersng.org` | Next Level Prayers |
+
+Each campus also has `<campus>.finance@` and `<campus>.admin@harvestersng.org`
+(e.g. `harvesters.gbagada.finance@harvestersng.org`).
+
 ## Design system
 
 | Token | Value | Usage |

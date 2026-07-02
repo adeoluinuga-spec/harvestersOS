@@ -16,7 +16,7 @@ import { requireUser } from "@/lib/auth";
 import { getEntities } from "@/lib/repo";
 import { getPledgeAging, searchGivers } from "@/lib/givings";
 import { humanize } from "@/lib/enums";
-import { money, shortDate } from "@/lib/format";
+import { compactMoney, shortDate } from "@/lib/format";
 import { CreatePledgeForm } from "../_components/CreatePledgeForm";
 import { PledgePaymentForm } from "../_components/PledgePaymentForm";
 
@@ -54,17 +54,14 @@ export default async function PledgesPage() {
       ctx.roles.some((r) => r.role !== "auditor"));
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
-      <div className="space-y-1">
+    <div className="mx-auto max-w-5xl space-y-5">
+      <div className="space-y-0.5">
         <Link href="/givings" className="font-sans text-xs text-muted-foreground hover:text-ink">
           ← Givings
         </Link>
-        <h2 className="font-display text-3xl tracking-display text-ink">
-          Pledges & Vows
-        </h2>
-        <p className="font-sans text-sm text-muted-foreground">
-          Outstanding pledges are receivables. Aging is measured against the
-          target fulfilment date, like an AR aging report.
+        <h2 className="font-display text-2xl tracking-display text-ink">Pledges & Vows</h2>
+        <p className="font-sans text-xs text-muted-foreground">
+          Outstanding pledges are receivables, aged against the target fulfilment date (AR-style).
         </p>
       </div>
 
@@ -103,11 +100,11 @@ export default async function PledgesPage() {
                     <TableCell>
                       <Badge variant="outline">{humanize(p.pledge_type as string)}</Badge>
                     </TableCell>
-                    <TableCell className="text-right">
-                      {money(p.total_pledged_amount as string, p.currency as string)}
+                    <TableCell className="text-right tabular-nums">
+                      {compactMoney(p.total_pledged_amount as string, p.currency as string)}
                     </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {money(p.outstanding_amount as string, p.currency as string)}
+                    <TableCell className="text-right font-medium tabular-nums">
+                      {compactMoney(p.outstanding_amount as string, p.currency as string)}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
                       {shortDate((p.target_fulfillment_date as string) ?? null)}

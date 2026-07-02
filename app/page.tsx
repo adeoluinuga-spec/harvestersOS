@@ -10,6 +10,8 @@ import { humanize } from "@/lib/enums";
 import { compactMoney, money, shortDate } from "@/lib/format";
 import { NAV_SECTIONS } from "@/lib/navigation";
 import { getExecutiveData } from "@/lib/dashboard";
+import { getWeeklyGiving, getYearGivingTotalNgn } from "@/lib/givingAnalytics";
+import { getGivingSummary } from "@/lib/givings";
 import {
   ApprovalsPanel, BreakdownList, BudgetVsActual, DetailCard, KpiCard,
   type DetailItem,
@@ -29,7 +31,11 @@ export default async function DashboardPage() {
   const ctx = await requireUser();
   const modules = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.href !== "/");
 
-  if (!ctx.isSuperAdmin) return <ModuleLauncher modules={modules} />;
+  // Scope-aware home: super-admin/auditor get the org-wide executive dashboard;
+  // every other cadre gets a scoped overview of the entities they can access.
+  if (!ctx.isSuperAdmin && !ctx.isAuditor) {
+    return <ScopedHome scope={ctx.accessibleEntityIds} modules={modules} />;
+  }
 
   const d = await getExecutiveData(ctx);
 
@@ -142,6 +148,43 @@ export default async function DashboardPage() {
         </Card>
       </section>
 
+      <ModuleLauncher modules={modules} compact />
+    </div>
+  );
+}
+
+async function ScopedHome({ scope, modules }: { scope: string[]; modules: Array<{ href: string; label: string; glyph: string }> }) {
+  if (scope.length === 0) return <ModuleLauncher modules={modules} />;
+  const [weekly, year, summary] = await Promise.all([
+    getWeeklyGiving(scope),
+    getYearGivingTotalNgn(scope),
+    getGivingSummary(scope),
+  ]);
+  const weeklyRows = weekly.byCurrency.map((c) => ({ name: c.currency, value: compactMoney(c.ngn), sub: `${c.gifts} gifts` }));
+  return (
+    <div className="mx-auto max-w-6xl space-y-6">
+      <section className="relative overflow-hidden rounded-xl bg-ink px-6 py-6 text-paper shadow-lift sm:px-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,169,106,0.24),transparent_22rem)]" />
+        <div className="relative space-y-1">
+          <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-champagne">Your overview</div>
+          <h2 className="font-display text-3xl font-semibold tracking-display text-paper sm:text-4xl">Dashboard</h2>
+          <p className="max-w-2xl font-sans text-sm text-paper/68">Scoped to the entities you oversee — every figure is clickable.</p>
+        </div>
+      </section>
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <KpiCard label="This week's giving" display={compactMoney(weekly.totalNgn)} caption="Consolidated to NGN across your entities · last 7 days." status="healthy" href="/givings/breakdown">
+          <BreakdownList rows={weeklyRows} />
+        </KpiCard>
+        <KpiCard label="Giving YTD" display={compactMoney(year.ngn)} caption="Year-to-date giving across your entities (NGN)." status="healthy" href="/givings/breakdown">
+          <BreakdownList rows={[{ name: "Year to date", value: compactMoney(year.ngn), sub: `${year.gifts.toLocaleString()} gifts` }]} />
+        </KpiCard>
+        <KpiCard label="Active pledges" display={summary.activePledges.toLocaleString()} caption="Outstanding pledges in your entities." status="healthy" href="/givings/pledges">
+          <BreakdownList rows={[{ name: "Active pledges", value: summary.activePledges.toLocaleString() }]} />
+        </KpiCard>
+        <KpiCard label="Givers" display={summary.givers.toLocaleString()} caption="Givers recorded across your entities." status="healthy" href="/givings/givers">
+          <BreakdownList rows={[{ name: "Givers", value: summary.givers.toLocaleString() }]} />
+        </KpiCard>
+      </section>
       <ModuleLauncher modules={modules} compact />
     </div>
   );

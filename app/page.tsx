@@ -10,6 +10,7 @@ import { humanize } from "@/lib/enums";
 import { compactMoney, money, shortDate } from "@/lib/format";
 import { NAV_SECTIONS } from "@/lib/navigation";
 import { getExecutiveData } from "@/lib/dashboard";
+import { getWeeklyReportInbox } from "@/lib/weeklyIncomeReports";
 import { getWeeklyGiving, getYearGivingTotalNgn } from "@/lib/givingAnalytics";
 import { getGivingSummary } from "@/lib/givings";
 import {
@@ -31,13 +32,10 @@ export default async function DashboardPage() {
   const ctx = await requireUser();
   const modules = NAV_SECTIONS.flatMap((s) => s.items).filter((i) => i.href !== "/");
 
-  // Scope-aware home: super-admin/auditor get the org-wide executive dashboard;
-  // every other cadre gets a scoped overview of the entities they can access.
-  if (!ctx.isSuperAdmin && !ctx.isAuditor) {
-    return <ScopedHome scope={ctx.accessibleEntityIds} modules={modules} />;
-  }
-
-  const d = await getExecutiveData(ctx);
+  const [d, weeklyInbox] = await Promise.all([
+    getExecutiveData(ctx),
+    getWeeklyReportInbox(ctx, 6),
+  ]);
 
   // KPI callout breakdown rows, per metric.
   const breakdown = (key: string): { name: string; value: string; sub?: string }[] => {
@@ -132,6 +130,47 @@ export default async function DashboardPage() {
         </Card>
       </section>
 
+      <section className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Reports inbox</CardTitle>
+            <CardDescription>Weekly income reports delivered in-app for your scope</CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            {weeklyInbox.length === 0 ? (
+              <div className="px-5 py-6 font-sans text-sm text-muted-foreground">No weekly income reports yet.</div>
+            ) : (
+              <div className="divide-y divide-paper-200">
+                {weeklyInbox.map((r) => {
+                  const totals = r.generatedData.totals as { weekly_ngn?: number };
+                  return (
+                    <Link key={r.id} href={`/reports/weekly/${r.id}`} className="flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-champagne-light/35">
+                      <div className="min-w-0">
+                        <div className="truncate font-sans text-sm font-semibold text-ink">{r.entityName}</div>
+                        <div className="font-sans text-xs text-muted-foreground">{shortDate(r.weekStart)} - {shortDate(r.weekEnd)}</div>
+                      </div>
+                      <div className="shrink-0 text-right font-sans text-sm font-bold text-ink">{compactMoney(Number(totals?.weekly_ngn ?? 0))}</div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Weekly income report flow</CardTitle>
+            <CardDescription>Sub-group finance officers can send to every campus pastor inbox</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/reports/weekly" className="inline-flex h-11 items-center gap-2 rounded-md border border-ink bg-ink px-4 font-sans text-sm font-bold text-paper shadow-lift transition-all hover:-translate-y-0.5">
+              Open weekly reports
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </CardContent>
+        </Card>
+      </section>
+
       {/* Restricted funds + Compliance + Maturities */}
       <section className="grid gap-6 lg:grid-cols-3">
         <Card>
@@ -189,6 +228,8 @@ async function ScopedHome({ scope, modules }: { scope: string[]; modules: Array<
     </div>
   );
 }
+
+void ScopedHome;
 
 function ModuleLauncher({ modules, compact }: { modules: Array<{ href: string; label: string; glyph: string }>; compact?: boolean }) {
   return (

@@ -129,6 +129,7 @@ const TRUNCATE_TABLES = [
   "whistleblower_reports", "scuml_compliance_log", "compliance_settings",
   "vendor_duplicate_flags", "vendors", "cross_border_transfers",
   "notifications", "email_outbox", "import_rows", "import_batches",
+  "weekly_income_reports",
 ];
 // Deleted (not truncated) because they also hold baseline rows to preserve.
 const DELETE_NOT_KEPT = ["bank_accounts", "fx_rates", "partnership_tiers", "payroll_tax_rules"];

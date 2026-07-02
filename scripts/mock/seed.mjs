@@ -254,6 +254,7 @@ async function run() {
   await seedNlpEvents();
   await seedReconciliation();
   await seedGovernance();
+  await seedWeeklyIncomeReports();
   await safe("derived alerts", async () => {
     await sql`select public.refresh_investment_maturity_alerts(120)`;
     await sql`select public.detect_lapsed_partners(current_date)`;
@@ -554,6 +555,67 @@ async function seedGovernance() {
   });
 }
 
+async function seedWeeklyIncomeReports() {
+  await safe("weekly income reports", async () => {
+    const now = new Date();
+    const diffToMonday = (now.getDay() + 6) % 7;
+    const thisMonday = new Date(now);
+    thisMonday.setDate(now.getDate() - diffToMonday);
+    const weekStart = new Date(thisMonday);
+    weekStart.setDate(thisMonday.getDate() - 7);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const ws = iso(weekStart);
+    const we = iso(weekEnd);
+    const year = weekStart.getFullYear();
+    for (const c of campuses.slice(0, 18)) {
+      const [weekly] = await sql`
+        select coalesce(sum(round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2)),0) amount_ngn,
+               count(*)::int gifts,
+               count(distinct gr.giver_id)::int givers
+        from public.giving_records gr
+        where gr.entity_id=${c.id} and gr.transaction_date between ${ws}::date and ${we}::date`;
+      const [target] = await sql`
+        select coalesce(sum(bl.approved_amount * public.fx_rate_at(e.functional_currency::text,'NGN',make_date(bc.fiscal_year,1,1))),0) target_ngn
+        from public.budget_lines bl
+        join public.budget_cycles bc on bc.id=bl.budget_cycle_id
+        join public.accounts a on a.id=bl.account_id
+        join public.entities e on e.id=bl.entity_id
+        where bl.entity_id=${c.id} and bc.fiscal_year=${year} and a.account_type='income'`;
+      const [ytd] = await sql`
+        select coalesce(sum(round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2)),0) achieved_ngn
+        from public.giving_records gr
+        where gr.entity_id=${c.id} and gr.transaction_date between make_date(${year},1,1) and ${we}::date`;
+      const weeklyAmount = Number(weekly.amount_ngn || 0);
+      const targetAmount = Number(target.target_ngn || 0);
+      const achieved = Number(ytd.achieved_ngn || 0);
+      const data = {
+        campus: { id: c.id, name: c.name, currency: c.currency },
+        period: { week_start: ws, week_end: we, fiscal_year: year },
+        weekly: [],
+        month_weeks: [{ week_start: ws, week_end: we, amount_ngn: weeklyAmount, gift_count: Number(weekly.gifts || 0) }],
+        target: {
+          annual_target_ngn: targetAmount,
+          target_to_date_ngn: Math.round(targetAmount * 0.5),
+          achieved_ytd_ngn: achieved,
+          achieved_percent: targetAmount ? Math.round((achieved / targetAmount) * 10000) / 100 : 0,
+          pace_percent: targetAmount ? Math.round((achieved / (targetAmount * 0.5)) * 10000) / 100 : 0,
+        },
+        totals: { weekly_ngn: weeklyAmount, gift_count: Number(weekly.gifts || 0), giver_count: Number(weekly.givers || 0) },
+      };
+      await sql`
+        insert into public.weekly_income_reports
+          (entity_id, week_start, week_end, generated_data, ai_narrative, ai_analysis, generated_by, sent_by, sent_at, recipients)
+        values
+          (${c.id}, ${ws}::date, ${we}::date, ${JSON.stringify(data)}::jsonb,
+           ${`${c.name} recorded NGN ${Math.round(weeklyAmount).toLocaleString("en-NG")} for the week, across ${weekly.gifts || 0} gifts.`},
+           ${`This is a pastoral and strategic review point. Compare giving participation with attendance, thank consistent givers, and follow up where giving velocity has slowed.`},
+           ${adminId}, ${cfoId}, now(), ARRAY[${adminId}::uuid, ${cfoId}::uuid])
+        on conflict (entity_id, week_start) do nothing`;
+    }
+  });
+}
+
 async function coverage() {
   const tables = ["entities", "givers", "giving_records", "journal_entries", "journal_entry_lines",
     "pledges", "pledge_fulfillments", "staff", "payroll_runs", "payroll_line_items", "vendors",
@@ -562,6 +624,7 @@ async function coverage() {
     "event_revenue_lines", "event_cost_lines", "digital_product_sales", "honorarium_payments",
     "bank_feed_transactions", "reconciliation_matches", "cash_count_sessions", "cash_deposits",
     "scuml_compliance_log", "whistleblower_reports", "fx_rates", "bank_accounts"];
+  tables.push("weekly_income_reports");
   console.log("\n=== COVERAGE (rows) ===");
   for (const t of tables) { const [{ n }] = await sql.unsafe(`select count(*)::int n from public.${t}`); console.log(`  ${t.padEnd(28)} ${n}`); }
 }

@@ -66,6 +66,7 @@ export default async function ReportsPage({
           </p>
         </div>
         <div className="flex gap-3">
+          <Link href="/reports/weekly" className="font-sans text-sm text-muted-foreground hover:text-ink">Weekly income</Link>
           <Link href={`${exportBase}&format=excel`} className="font-sans text-sm text-muted-foreground hover:text-ink">Export Excel</Link>
           <Link href={`${exportBase}&format=pdf`} className="font-sans text-sm text-muted-foreground hover:text-ink">Print/PDF</Link>
         </div>

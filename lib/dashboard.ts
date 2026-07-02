@@ -2,9 +2,11 @@ import "server-only";
 import { sql } from "./db";
 import type { AuthContext } from "./auth";
 
-// The executive dashboard renders for super_admin/CFO only, so data is global.
 const ROOT = sql`(select id from public.entities where name='Harvesters International Christian Centre' and type='group' order by created_at limit 1)`;
 const N = (v: unknown) => Number(v ?? 0);
+type Scope = "all" | string[];
+const scoped = (col: string, scope: Scope) =>
+  scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`${sql.unsafe(col)} in ${sql(scope)}`;
 
 export type Severity = "attention" | "healthy";
 export type Kpi = {
@@ -19,15 +21,68 @@ export type Kpi = {
 };
 export type NamedAmount = { name: string; amount: number; extra?: string };
 
+async function scopedSnapshot(scope: string[], yearStart: string, today: string) {
+  const [giving, budget, funds, approvals, compliance, maturities] = await Promise.all([
+    sql`
+      select coalesce(sum(round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2)),0) amount
+      from public.giving_records gr
+      where gr.transaction_date between ${yearStart}::date and ${today}::date
+        and ${scoped("gr.entity_id", scope)}`,
+    sql`
+      select coalesce(sum(variance_amount),0) variance
+      from public.budget_vs_actual_rollup
+      where fiscal_year=extract(year from current_date)::int
+        and ${scoped("entity_id", scope)}`,
+    sql`
+      select coalesce(sum(current_balance),0) balance
+      from public.restricted_fund_balances
+      where ${scoped("entity_id", scope)}`,
+    sql`
+      select count(*)::int n
+      from public.requisition_approvals ra
+      left join public.requisition_requests rr on rr.id=ra.requisition_request_id
+      left join public.requisition_batches rb on rb.id=ra.requisition_batch_id
+      where ra.status='pending'
+        and ${scope.length === 0 ? sql`false` : sql`coalesce(rr.entity_id, rb.entity_id) in ${sql(scope)}`}`,
+    sql`
+      select
+        (select count(*) from public.nfiu_flagged_transactions where ${scoped("entity_id", scope)})
+        + (select count(*) from public.wht_remittance_dashboard where is_overdue and ${scoped("entity_id", scope)})
+        + (select count(*) from public.cross_border_transfers cbt where cbt.compliance_status in ('pending_review','flagged')
+             and ${scope.length === 0 ? sql`false` : sql`(cbt.sending_entity_id in ${sql(scope)} or cbt.receiving_entity_id in ${sql(scope)})`})
+        as n`,
+    sql`
+      select count(*)::int n
+      from public.investment_yield_tracking
+      where status='active' and days_to_maturity between 0 and 45
+        and ${scoped("entity_id", scope)}`,
+  ]);
+  const b = N(budget[0]?.variance);
+  const approvalCount = N(approvals[0]?.n);
+  const complianceCount = N(compliance[0]?.n);
+  const maturityCount = N(maturities[0]?.n);
+  return [
+    { metric_key: "consolidated_giving", metric_value: N(giving[0]?.amount), severity: "normal", currency: "NGN" },
+    { metric_key: "budget_variance", metric_value: b, severity: b < 0 ? "attention" : "normal", currency: "NGN" },
+    { metric_key: "restricted_fund_balances", metric_value: N(funds[0]?.balance), severity: "normal", currency: "NGN" },
+    { metric_key: "pending_approvals", metric_value: approvalCount, severity: approvalCount > 0 ? "attention" : "normal", currency: null },
+    { metric_key: "compliance_flags", metric_value: complianceCount, severity: complianceCount > 0 ? "attention" : "normal", currency: null },
+    { metric_key: "investment_maturities", metric_value: maturityCount, severity: maturityCount > 0 ? "attention" : "normal", currency: null },
+  ];
+}
+
 export async function getExecutiveData(_ctx: AuthContext) {
   const yearStart = `${new Date().getFullYear()}-01-01`;
   const today = new Date().toISOString().slice(0, 10);
+  const scope: Scope = _ctx.isSuperAdmin || _ctx.isAuditor ? "all" : _ctx.accessibleEntityIds;
 
   const [
     snapshot, givingByGroup, givingTrend, incomeExpense, budgetByGroup,
     fundProgress, approvalsMine, approvalsAll, approvalsByRole, compliance, maturities,
   ] = await Promise.all([
-    sql`select metric_key, metric_value, severity, currency from public.executive_dashboard_snapshot(${yearStart}::date, ${today}::date)`,
+    scope === "all"
+      ? sql`select metric_key, metric_value, severity, currency from public.executive_dashboard_snapshot(${yearStart}::date, ${today}::date)`
+      : scopedSnapshot(scope, yearStart, today),
 
     // Giving by group — same basis as the consolidated_giving KPI (giving_records × fx_rate_at, YTD).
     sql`with recursive tree as (
@@ -35,13 +90,14 @@ export async function getExecutiveData(_ctx: AuthContext) {
         union all select t.root, t.grp, e.id from public.entities e join tree t on e.parent_entity_id=t.eid)
       select t.grp name, coalesce(sum(case when gr.id is not null then round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2) else 0 end),0) amount
       from tree t
-      left join public.giving_records gr on gr.entity_id=t.eid and gr.transaction_date between ${yearStart} and ${today}
+      left join public.giving_records gr on gr.entity_id=t.eid and gr.transaction_date between ${yearStart} and ${today} and ${scoped("gr.entity_id", scope)}
       group by t.grp order by amount desc`,
 
     sql`select to_char(date_trunc('month', gr.transaction_date),'Mon') label, date_trunc('month', gr.transaction_date) ord,
         coalesce(sum(round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2)),0) amount
       from public.giving_records gr
       where gr.transaction_date >= (date_trunc('month',current_date)-interval '11 months')
+        and ${scoped("gr.entity_id", scope)}
       group by 1,2 order by 2`,
 
     sql`select to_char(date_trunc('month', e.transaction_date),'Mon') label, date_trunc('month', e.transaction_date) ord,
@@ -49,14 +105,18 @@ export async function getExecutiveData(_ctx: AuthContext) {
         coalesce(sum(case when a.account_type='expense' then l.debit_amount*l.fx_rate_to_presentation_currency else 0 end),0) expense
       from public.journal_entries e join public.journal_entry_lines l on l.journal_entry_id=e.id join public.accounts a on a.id=l.account_id
       where e.status='posted' and e.transaction_date >= (date_trunc('month',current_date)-interval '11 months')
+        and ${scoped("l.entity_id", scope)}
       group by 1,2 order by 2`,
 
     sql`select entity_id, entity_name, sum(approved_amount) approved, sum(actual_amount) actual, sum(variance_amount) variance
       from public.budget_vs_actual_rollup where entity_type='group' and parent_entity_id is not null and fiscal_year=extract(year from current_date)::int
+        and ${scoped("entity_id", scope)}
       group by entity_id, entity_name order by entity_name`,
 
     sql`select id, name, entity_name, current_balance, target_amount, percent_funded
-      from public.restricted_fund_balances order by percent_funded desc nulls last limit 10`,
+      from public.restricted_fund_balances
+      where ${scoped("entity_id", scope)}
+      order by percent_funded desc nulls last limit 10`,
 
     getPendingApprovalsForUser(_ctx),
 
@@ -66,19 +126,24 @@ export async function getExecutiveData(_ctx: AuthContext) {
       left join public.requisition_requests rr on rr.id=ra.requisition_request_id
       left join public.requisition_batches rb on rb.id=ra.requisition_batch_id
       left join public.entities e on e.id=coalesce(rr.entity_id, rb.entity_id)
-      where ra.status='pending' order by ra.sequence_order limit 25`,
+      where ra.status='pending'
+        and ${scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`coalesce(rr.entity_id, rb.entity_id) in ${sql(scope)}`}
+      order by ra.sequence_order limit 25`,
 
     sql`select ra.approver_role name, count(*)::int cnt,
         coalesce(sum(coalesce(rr.amount, rb.total_amount)),0) amount
       from public.requisition_approvals ra
       left join public.requisition_requests rr on rr.id=ra.requisition_request_id
       left join public.requisition_batches rb on rb.id=ra.requisition_batch_id
-      where ra.status='pending' group by ra.approver_role order by cnt desc`,
+      where ra.status='pending'
+        and ${scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`coalesce(rr.entity_id, rb.entity_id) in ${sql(scope)}`}
+      group by ra.approver_role order by cnt desc`,
 
-    getCompliance(),
+    getCompliance(scope),
 
     sql`select id, entity_name, investment_type, institution, principal_amount, currency, maturity_date::text, days_to_maturity
       from public.investment_yield_tracking where status='active' and days_to_maturity between 0 and 45
+        and ${scoped("entity_id", scope)}
       order by maturity_date limit 10`,
   ]);
 
@@ -134,6 +199,7 @@ function normApproval(r: ApprovalRow) {
 async function getPendingApprovalsForUser(ctx: AuthContext): Promise<ApprovalRow[]> {
   const roles = ctx.roles.map((r) => r.role);
   if (roles.length === 0) return [];
+  const scope: Scope = ctx.isSuperAdmin || ctx.isAuditor ? "all" : ctx.accessibleEntityIds;
   return sql`
     select ra.id, ra.approver_role, ra.is_board_step, coalesce(rr.description,'Batch approval') description,
       coalesce(rr.amount, rb.total_amount) amount, coalesce(rr.currency, rb.currency, 'NGN') currency, e.name entity_name
@@ -142,6 +208,7 @@ async function getPendingApprovalsForUser(ctx: AuthContext): Promise<ApprovalRow
     left join public.requisition_batches rb on rb.id=ra.requisition_batch_id
     left join public.entities e on e.id=coalesce(rr.entity_id, rb.entity_id)
     where ra.status='pending' and ra.approver_role in ${sql(roles)}
+      and ${scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`coalesce(rr.entity_id, rb.entity_id) in ${sql(scope)}`}
     order by ra.sequence_order limit 25`;
 }
 
@@ -186,13 +253,15 @@ export async function getInvestmentPortfolio(): Promise<PortfolioInvestment[]> {
 }
 
 export type ComplianceItem = { type: string; entity: string; amount: number; currency: string; date: string; severity: "high" | "medium" };
-async function getCompliance(): Promise<ComplianceItem[]> {
+async function getCompliance(scope: Scope): Promise<ComplianceItem[]> {
   const [nfiu, wht, cross] = await Promise.all([
-    sql`select entity_name, amount, currency, transaction_date::text d from public.nfiu_flagged_transactions order by transaction_date desc limit 6`,
-    sql`select entity_name, outstanding_amount amount, remittance_month::text d from public.wht_remittance_dashboard where is_overdue order by remittance_month limit 6`,
+    sql`select entity_name, amount, currency, transaction_date::text d from public.nfiu_flagged_transactions where ${scoped("entity_id", scope)} order by transaction_date desc limit 6`,
+    sql`select entity_name, outstanding_amount amount, remittance_month::text d from public.wht_remittance_dashboard where is_overdue and ${scoped("entity_id", scope)} order by remittance_month limit 6`,
     sql`select se.name||' → '||re.name entity_name, cbt.amount, cbt.currency, cbt.created_at::date::text d
       from public.cross_border_transfers cbt join public.entities se on se.id=cbt.sending_entity_id join public.entities re on re.id=cbt.receiving_entity_id
-      where cbt.compliance_status in ('pending_review','flagged') order by cbt.created_at desc limit 6`,
+      where cbt.compliance_status in ('pending_review','flagged')
+        and ${scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`(cbt.sending_entity_id in ${sql(scope)} or cbt.receiving_entity_id in ${sql(scope)})`}
+      order by cbt.created_at desc limit 6`,
   ]);
   return [
     ...nfiu.map((r) => ({ type: "NFIU large cash", entity: String(r.entity_name), amount: N(r.amount), currency: String(r.currency ?? "NGN"), date: String(r.d), severity: "high" as const })),

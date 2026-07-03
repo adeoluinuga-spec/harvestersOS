@@ -3,6 +3,7 @@ import {
   Badge,
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
   Table,
@@ -59,10 +60,18 @@ export default async function ExpensesPage() {
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Recent requests</CardTitle>
-            <Link href="/expenses/request" className="font-sans text-xs text-muted-foreground hover:text-ink">
-              New request
-            </Link>
+            <div>
+              <CardTitle>Recent requests</CardTitle>
+              <CardDescription>Latest across your scope — track your own under Track</CardDescription>
+            </div>
+            <div className="flex items-center gap-3">
+              <Link href="/expenses/track" className="font-sans text-xs text-muted-foreground hover:text-ink">
+                Track my requests →
+              </Link>
+              <Link href="/expenses/request" className="font-sans text-xs text-muted-foreground hover:text-ink">
+                New request
+              </Link>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <Table>

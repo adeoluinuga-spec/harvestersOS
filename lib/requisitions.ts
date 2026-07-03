@@ -1,5 +1,6 @@
 import "server-only";
 import { sql, type Exec } from "./db";
+import { notifyInApp, queueMessage, usersForRoleAtEntity } from "./notify";
 
 type Scope = "all" | string[];
 const scoped = (col: string, scope: Scope) =>
@@ -450,4 +451,97 @@ export async function createSignatureSlot(
       values (${slot.id}, ${userId}) on conflict do nothing`;
   }
   return slot.id;
+}
+
+// ---------------------------------------------------------------------------
+// Track-page support: pagination, approval chains, decision + nudge notices.
+// ---------------------------------------------------------------------------
+
+export async function getMyRequestsPaged(userId: string, page: number, pageSize: number) {
+  const [rows, count] = await Promise.all([
+    sql<RequestRow[]>`
+      select rr.id, rr.entity_id, e.name as entity_name, u.email as raised_by_email,
+             rr.category, rr.description, rr.amount, rr.net_payable_amount,
+             rr.wht_withheld_amount, rr.currency, rr.status, rr.is_urgent,
+             rr.needed_by_date, rr.created_at, v.name as vendor_name,
+             rr.related_party_disclosure_note
+      from public.requisition_requests rr
+      join public.entities e on e.id = rr.entity_id
+      left join auth.users u on u.id = rr.raised_by
+      left join public.vendors v on v.id = rr.vendor_id
+      where rr.raised_by = ${userId}
+      order by rr.created_at desc
+      limit ${pageSize} offset ${(page - 1) * pageSize}`,
+    sql<{ n: number }[]>`select count(*)::int n from public.requisition_requests where raised_by = ${userId}`,
+  ]);
+  return { rows, total: count[0]?.n ?? 0 };
+}
+
+export type ChainStep = {
+  requestId: string;
+  role: string;
+  status: string;
+  sequence: number;
+  isBoard: boolean;
+  decidedAt: string | null;
+};
+
+/** Approval chains (direct or via batch) for a set of requisitions. */
+export async function getApprovalChains(requestIds: string[]): Promise<ChainStep[]> {
+  if (requestIds.length === 0) return [];
+  const rows = await sql`
+    select coalesce(ra.requisition_request_id, rbi.requisition_request_id) as request_id,
+           ra.approver_role, ra.status, ra.sequence_order, ra.is_board_step, ra.decided_at
+    from public.requisition_approvals ra
+    left join public.requisition_batch_items rbi on rbi.batch_id = ra.requisition_batch_id
+    where coalesce(ra.requisition_request_id, rbi.requisition_request_id) in ${sql(requestIds)}
+    order by ra.sequence_order`;
+  return rows.map((r) => ({
+    requestId: String(r.request_id),
+    role: String(r.approver_role),
+    status: String(r.status),
+    sequence: Number(r.sequence_order),
+    isBoard: Boolean(r.is_board_step),
+    decidedAt: r.decided_at ? String(r.decided_at) : null,
+  }));
+}
+
+/** Notify the requester when an approval step is decided ("your X was approved"). */
+export async function notifyDecision(approvalId: string, decision: string, actorId: string) {
+  const rows = await sql<{ id: string; description: string; raised_by: string | null; entity_id: string; email: string | null }[]>`
+    select rr.id, rr.description, rr.raised_by, rr.entity_id, u.email
+    from public.requisition_approvals ra
+    left join public.requisition_batch_items rbi on rbi.batch_id = ra.requisition_batch_id
+    join public.requisition_requests rr on rr.id = coalesce(ra.requisition_request_id, rbi.requisition_request_id)
+    left join auth.users u on u.id = rr.raised_by
+    where ra.id = ${approvalId}`;
+  for (const r of rows) {
+    if (!r.raised_by) continue;
+    const title = decision === "approved" ? "Requisition approved" : "Requisition rejected";
+    const body = `Your requisition “${r.description}” has been ${decision}.`;
+    await notifyInApp({ userId: r.raised_by, entityId: r.entity_id, title, body, href: "/expenses/track" });
+    if (r.email)
+      await queueMessage({ channel: "email", toContact: r.email, toUserId: r.raised_by, subject: title, body, kind: "approval_decision", entityId: r.entity_id }, actorId);
+    await queueMessage({ channel: "whatsapp", toUserId: r.raised_by, subject: title, body, kind: "approval_decision", entityId: r.entity_id }, actorId);
+  }
+}
+
+/** Nudge whoever holds the currently-pending approval step for a requisition. */
+export async function nudgePendingApprover(requestId: string, actorId: string): Promise<string | null> {
+  const chain = await getApprovalChains([requestId]);
+  const pending = chain.find((s) => s.status === "pending");
+  if (!pending) return null;
+  const [req] = await sql<{ description: string; entity_id: string }[]>`
+    select description, entity_id from public.requisition_requests where id = ${requestId}`;
+  if (!req) return null;
+  const title = "Approval reminder";
+  const body = `“${req.description}” is awaiting your ${pending.role.replaceAll("_", " ")} approval.`;
+  await notifyInApp({ role: pending.role, entityId: req.entity_id, title, body, href: "/expenses/approvals" });
+  const users = await usersForRoleAtEntity(pending.role, req.entity_id);
+  for (const u of users.slice(0, 10)) {
+    if (u.email)
+      await queueMessage({ channel: "email", toContact: u.email, toUserId: u.id, subject: title, body, kind: "approval_nudge", entityId: req.entity_id }, actorId);
+    await queueMessage({ channel: "whatsapp", toUserId: u.id, subject: title, body, kind: "approval_nudge", entityId: req.entity_id }, actorId);
+  }
+  return pending.role;
 }

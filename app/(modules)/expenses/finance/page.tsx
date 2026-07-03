@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { humanize } from "@/lib/enums";
 import { money } from "@/lib/format";
 import { getBankAccounts, getDisbursements, getFinanceQueue } from "@/lib/requisitions";
+import { ImportButton } from "@/components/ImportButton";
 import { createDisbursementAction, markDisbursedAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -19,9 +20,12 @@ export default async function FinancePage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <div className="space-y-1">
-        <Link href="/expenses" className="font-sans text-xs text-muted-foreground hover:text-ink">Back to requisitions</Link>
-        <h2 className="font-display text-3xl tracking-display text-ink">Finance processing</h2>
+      <div className="flex items-end justify-between gap-3">
+        <div className="space-y-1">
+          <Link href="/expenses" className="font-sans text-xs text-muted-foreground hover:text-ink">Back to requisitions</Link>
+          <h2 className="font-display text-3xl tracking-display text-ink">Finance processing</h2>
+        </div>
+        <ImportButton type="disbursements" label="Upload payment references" />
       </div>
 
       <Card>

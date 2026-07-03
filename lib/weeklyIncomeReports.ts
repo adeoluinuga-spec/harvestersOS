@@ -101,7 +101,7 @@ export async function generateWeeklyIncomeReport(d: {
       (entity_id, week_start, week_end, generated_data, ai_narrative, ai_analysis,
        generated_by, sent_by, sent_at, recipients)
     values
-      (${d.campusId}, ${d.weekStart}::date, ${d.weekEnd}::date, ${JSON.stringify(data)}::jsonb,
+      (${d.campusId}, ${d.weekStart}::date, ${d.weekEnd}::date, ${exec.json(data as never)},
        ${ai.narrative}, ${ai.analysis}, ${d.actorId}, ${d.send ? d.actorId : null},
        ${d.send ? sql`now()` : null}, ${recipients})
     on conflict (entity_id, week_start) do update set

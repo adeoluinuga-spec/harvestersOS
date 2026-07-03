@@ -655,7 +655,129 @@ const entities: ImportTypeDef = {
 };
 
 // ===========================================================================
+// REQUISITIONS (bulk expense request intake)
+// ===========================================================================
+const requisitions: ImportTypeDef = {
+  key: "requisitions",
+  label: "Requisitions",
+  description: "Bulk expense requests. Rows land as submitted requisitions and enter the normal compile → approval flow.",
+  targetTable: "requisition_requests",
+  entityScoped: false,
+  columns: [
+    { key: "entity", label: "entity", required: true, example: "Harvesters Gbagada" },
+    { key: "category", label: "category", required: true, example: "Utilities" },
+    { key: "description", label: "description", required: true, example: "Diesel supply — March" },
+    { key: "amount", label: "amount", required: true, example: "1500000" },
+    { key: "currency", label: "currency", help: "Defaults to entity currency", example: "NGN" },
+    { key: "vendor", label: "vendor", help: "Existing vendor name (optional)", example: "PowerGen Diesel" },
+    { key: "needed_by_date", label: "needed_by_date", help: "YYYY-MM-DD", example: "2026-07-30" },
+    { key: "is_urgent", label: "is_urgent", help: "yes/no", example: "no" },
+    { key: "wht_applicable", label: "wht_applicable", help: "yes/no", example: "yes" },
+    { key: "wht_rate", label: "wht_rate", help: "Percent, e.g. 5", example: "5" },
+  ],
+  validate: (raw, ctx) => {
+    const errors: RowError[] = [];
+    const e = resolveEntity(ctx, field(raw, "entity"));
+    if (!e) errors.push({ field: "entity", message: "Unknown/!accessible entity" });
+    if (!field(raw, "category")) errors.push({ field: "category", message: "Required" });
+    if (!field(raw, "description")) errors.push({ field: "description", message: "Required" });
+    const amount = asNumber(field(raw, "amount"));
+    if (!amount || amount <= 0) errors.push({ field: "amount", message: "Amount must be > 0" });
+    const whtApplicable = /^(y|yes|true|1)$/i.test(field(raw, "wht_applicable"));
+    const whtRate = asNumber(field(raw, "wht_rate")) ?? (whtApplicable ? 5 : 0);
+    if (errors.length) return bad(errors);
+    return ok({
+      entityId: e!.id,
+      currency: (field(raw, "currency") || e!.currency).toUpperCase(),
+      category: field(raw, "category"),
+      description: field(raw, "description"),
+      amount: String(amount),
+      vendor: field(raw, "vendor") || null,
+      neededBy: asDate(field(raw, "needed_by_date")),
+      urgent: /^(y|yes|true|1)$/i.test(field(raw, "is_urgent")),
+      whtApplicable,
+      whtRate: whtApplicable ? String(whtRate) : "0",
+    });
+  },
+  commit: (rows, ctx, tx) =>
+    perRow(tx, rows as { rowNumber: number; value: any }[], async (v, sp) => {
+      let vendorId: string | null = null;
+      if (v.vendor) {
+        const [ven] = await sp<{ id: string; is_related_party: boolean }[]>`
+          select id, is_related_party from public.vendors where lower(name) = lower(${v.vendor}) limit 1`;
+        if (!ven) throw new Error(`Vendor "${v.vendor}" not found — import vendors first`);
+        if (ven.is_related_party) throw new Error(`Vendor "${v.vendor}" is a related party; raise that requisition in-app with a disclosure note`);
+        vendorId = ven.id;
+      }
+      const [row] = await sp<{ id: string }[]>`
+        insert into public.requisition_requests
+          (entity_id, raised_by, raised_by_role, org_branch, raised_by_level, vendor_id, category, description,
+           amount, currency, needed_by_date, is_urgent, wht_applicable, wht_rate, status, submitted_at, budget_line_id)
+        values (${v.entityId}, ${ctx.actorId}, 'campus_finance_officer', 'congregational', 'campus', ${vendorId},
+           ${v.category}, ${v.description}, ${v.amount}, ${v.currency}, ${v.neededBy}::date, ${v.urgent},
+           ${v.whtApplicable}, ${v.whtRate}, 'submitted', now(),
+           (select bl.id from public.budget_lines bl
+            join public.budget_cycles bc on bc.id = bl.budget_cycle_id
+            join public.accounts a on a.id = bl.account_id
+            where bl.entity_id = ${v.entityId} and a.account_type = 'expense'
+              and bc.fiscal_year = extract(year from current_date)::int
+            order by coalesce(bl.approved_amount, bl.proposed_amount) desc limit 1))
+        returning id`;
+      if (v.urgent) {
+        try { await sp`select public.generate_requisition_approvals(null, ${row.id})`; } catch { /* chain optional */ }
+      }
+      return row.id;
+    }),
+};
+
+// ===========================================================================
+// DISBURSEMENT REFERENCES (finance processing upload)
+// ===========================================================================
+const disbursements: ImportTypeDef = {
+  key: "disbursements",
+  label: "Disbursement References",
+  description: "Finance upload: bank upload / transfer references for approved requisitions. Creates disbursements pending signatures.",
+  targetTable: "disbursement_records",
+  entityScoped: false,
+  columns: [
+    { key: "requisition_id", label: "requisition_id", required: true, help: "The requisition's ID (from Track / Finance queue)", example: "3f2a…-uuid" },
+    { key: "bank_upload_reference", label: "bank_upload_reference", required: true, example: "UPL-2231" },
+    { key: "transfer_instruction_reference", label: "transfer_instruction_reference", example: "TRF-8812" },
+  ],
+  validate: (raw) => {
+    const errors: RowError[] = [];
+    const id = field(raw, "requisition_id");
+    if (!/^[0-9a-f-]{36}$/i.test(id)) errors.push({ field: "requisition_id", message: "Must be a valid requisition UUID" });
+    if (!field(raw, "bank_upload_reference")) errors.push({ field: "bank_upload_reference", message: "Required" });
+    if (errors.length) return bad(errors);
+    return ok({ reqId: id, upl: field(raw, "bank_upload_reference"), trf: field(raw, "transfer_instruction_reference") || null });
+  },
+  commit: (rows, ctx, tx) =>
+    perRow(tx, rows as { rowNumber: number; value: any }[], async (v, sp) => {
+      const [rr] = await sp<{ id: string; entity_id: string; amount: string; wht: string; net: string; status: string }[]>`
+        select id, entity_id, amount, wht_withheld_amount wht, net_payable_amount net, status
+        from public.requisition_requests where id = ${v.reqId}`;
+      if (!rr) throw new Error("Requisition not found");
+      if (!["approved", "sent_to_finance", "disbursement_pending"].includes(rr.status))
+        throw new Error(`Requisition is ${rr.status}; only approved requests can be processed`);
+      const [ba] = await sp<{ id: string }[]>`
+        select id from public.bank_accounts where entity_id = ${rr.entity_id} and is_active order by created_at limit 1`;
+      if (!ba) throw new Error("No bank account registered for the requisition's entity");
+      const [row] = await sp<{ id: string }[]>`
+        insert into public.disbursement_records
+          (requisition_request_id, bank_account_id, finance_processed_by, bank_upload_reference,
+           transfer_instruction_reference, gross_amount, wht_withheld_amount, net_payable_amount, disbursement_status)
+        values (${rr.id}, ${ba.id}, ${ctx.actorId}, ${v.upl}, ${v.trf}, ${rr.amount}, ${rr.wht}, ${rr.net}, 'pending_signatures')
+        returning id`;
+      await sp`update public.requisition_requests set status = 'disbursement_pending' where id = ${rr.id}`;
+      return row.id;
+    }),
+};
+
+// ===========================================================================
 export const IMPORT_TYPES: Record<string, ImportTypeDef> = {
+  requisitions,
+  disbursements,
   givers,
   giving_records,
   opening_balances,

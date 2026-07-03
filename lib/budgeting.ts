@@ -172,3 +172,14 @@ export async function checkBudgetRequisition(budgetLineId: string, amount: strin
   }[]>`select * from public.check_budget_requisition(${budgetLineId}, ${amount})`;
   return row ?? null;
 }
+
+/** Requisitions committed against a set of budget lines (feeds the availability callout). */
+export async function getBudgetLineCommitments(lineIds: string[]) {
+  if (lineIds.length === 0) return [];
+  return sql`
+    select rr.budget_line_id, rr.id, rr.description, rr.amount, rr.currency, rr.status, rr.created_at::date::text as created
+    from public.requisition_requests rr
+    where rr.budget_line_id in ${sql(lineIds)}
+      and rr.status not in ('draft','rejected','cancelled')
+    order by rr.created_at desc`;
+}

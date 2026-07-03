@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { Button, Card, CardContent, CardHeader, CardTitle, Field, Input, Select, Textarea } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
-import { getOpenApprovedBudgetLines } from "@/lib/budgeting";
-import { money } from "@/lib/format";
+import { getBudgetLineCommitments, getOpenApprovedBudgetLines } from "@/lib/budgeting";
 import { getRequisitionEntities, getVendors } from "@/lib/requisitions";
+import { BudgetAvailability, type BudgetLineView, type Commitment } from "@/components/expenses/BudgetAvailability";
+import { ImportButton } from "@/components/ImportButton";
 import { createRequestAction, createVendorAction } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -17,11 +18,32 @@ export default async function RequestPage() {
     getOpenApprovedBudgetLines(scope),
   ]);
 
+  const shownLines: BudgetLineView[] = (budgetLines as Record<string, string>[]).slice(0, 8).map((b) => ({
+    id: String(b.id),
+    entity: String(b.entity_name),
+    accountCode: String(b.account_code),
+    accountName: String(b.account_name),
+    approved: Number(b.approved_amount ?? 0),
+    committed: Number(b.actual_amount ?? 0),
+  }));
+  const commitmentsRaw = await getBudgetLineCommitments(shownLines.map((l) => l.id));
+  const commitments: Commitment[] = (commitmentsRaw as Record<string, string>[]).map((c) => ({
+    lineId: String(c.budget_line_id),
+    description: String(c.description),
+    amount: Number(c.amount),
+    currency: String(c.currency),
+    status: String(c.status),
+    created: String(c.created),
+  }));
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="space-y-1">
-        <Link href="/expenses" className="font-sans text-xs text-muted-foreground hover:text-ink">Back to requisitions</Link>
-        <h2 className="font-display text-3xl tracking-display text-ink">New requisition</h2>
+      <div className="flex items-end justify-between gap-3">
+        <div className="space-y-1">
+          <Link href="/expenses" className="font-sans text-xs text-muted-foreground hover:text-ink">Back to requisitions</Link>
+          <h2 className="font-display text-3xl tracking-display text-ink">New requisition</h2>
+        </div>
+        <ImportButton type="requisitions" label="Import requisitions" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.8fr]">
@@ -131,21 +153,8 @@ export default async function RequestPage() {
 
         <Card>
           <CardHeader><CardTitle>Budget availability</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {budgetLines.slice(0, 8).map((b: Record<string, string>) => {
-              const remaining = Number(b.approved_amount ?? 0) - Number(b.actual_amount ?? 0);
-              return (
-                <div key={b.id} className="border-b border-paper-200 pb-3 last:border-0 last:pb-0">
-                  <div className="font-sans text-sm font-medium">{b.entity_name}</div>
-                  <div className="font-sans text-xs text-muted-foreground">
-                    {b.account_code} · approved {money(b.approved_amount)} · actual {money(b.actual_amount)} · remaining {money(String(remaining))}
-                  </div>
-                </div>
-              );
-            })}
-            {budgetLines.length === 0 && (
-              <p className="font-sans text-sm text-muted-foreground">No approved budget lines are available yet.</p>
-            )}
+          <CardContent>
+            <BudgetAvailability lines={shownLines} commitments={commitments} />
           </CardContent>
         </Card>
       </div>

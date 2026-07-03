@@ -177,7 +177,9 @@ async function run() {
             subgroup: sg.name, tier: FLAGSHIPS.has(cname) ? "flagship" : choice(["large", "medium", "medium", "small"]),
             state: STATES[cname] || STATES.default };
           entities.push(rec); campuses.push(rec);
-          await grant(await ensureUser(emailFor(cname + " admin"), `${cname} Administrator`), "campus_admin", cid);
+          const campusAdmin = await ensureUser(emailFor(cname + " admin"), `${cname} Administrator`);
+          await grant(campusAdmin, "campus_admin", cid);
+          await grant(campusAdmin, "campus_pastor", cid); // demo: campus admin doubles as pastor so approvals/nudges light up
           await grant(await ensureUser(emailFor(cname + " finance"), `${cname} Finance Officer`), "campus_finance_officer", cid);
         }
       }

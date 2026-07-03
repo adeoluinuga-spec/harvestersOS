@@ -13,6 +13,8 @@ import {
   createVendor as repoCreateVendor,
   decideApproval as repoDecideApproval,
   markDisbursed as repoMarkDisbursed,
+  notifyDecision,
+  nudgePendingApprover,
   signDisbursement as repoSignDisbursement,
 } from "@/lib/requisitions";
 
@@ -120,9 +122,19 @@ export async function decideApprovalAction(formData: FormData) {
   await withActor(ctx.user.id, (tx) =>
     repoDecideApproval(id, ctx.user.id, decision, String(formData.get("comments") || "").trim() || null, tx)
   );
+  // Tell the requester ("your X has been approved/rejected") — in-app + queued email/WhatsApp.
+  try { await notifyDecision(id, decision, ctx.user.id); } catch { /* notification failure never blocks the decision */ }
   revalidatePath("/expenses/approvals");
   revalidatePath("/expenses/finance");
   redirect("/expenses/approvals?decided=1");
+}
+
+export async function nudgeApprovalAction(formData: FormData) {
+  const ctx = await requireUser();
+  const requestId = String(formData.get("request_id") || "");
+  if (!requestId) return;
+  await nudgePendingApprover(requestId, ctx.user.id);
+  revalidatePath("/expenses/track");
 }
 
 export async function createDisbursementAction(formData: FormData) {

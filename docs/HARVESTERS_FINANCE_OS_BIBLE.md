@@ -439,6 +439,26 @@ cadre gets a scope‑aware version** of it filtered to the entities they oversee
   vendors, and requisitions **restricted to the signed‑in user’s accessible
   entities**, so each person only finds what they are allowed to see.
 
+### Weekly Income Reports (AI)
+The traditional Tuesday income report, automated (`/reports/weekly`): for each
+campus — **weekly giving** (by type and channel), the **month broken out by
+weeks**, and **year target vs achieved** (target = approved income budget;
+achieved = actual giving, with pace‑to‑date). A **sub‑group finance officer
+clicks one button** and every campus in the sub‑group receives its report
+**in‑app on the campus pastor's dashboard** (sub‑group and group pastors see
+them too). Each report carries an **AI‑prepared narrative** and an **AI analysis
+& interpretation** — strategic *and* pastoral‑care initiatives — via the
+Anthropic integration (with a deterministic fallback when no key is set).
+
+### Notifications
+A two‑channel system: **in‑app notifications** (user‑ or role‑targeted, entity‑
+scoped) and a **message outbox** for **email and WhatsApp/SMS via Termii**.
+Outbox messages queue even without provider keys and deliver once
+`TERMII_API_KEY` / `RESEND_API_KEY` are configured. Wired today: approval
+decisions ("your requisition was approved/rejected"), **approval‑nudge
+reminders** from the Track page (tap a request → see the chain and who is
+pending → send a reminder), and weekly‑report delivery notices.
+
 ### Giving Breakdown & Analytics
 `/givings/breakdown` presents an expandable **group → sub‑group → campus** tree
 (plus ministries such as NLP) with **characteristic totals** — Sunday offering,

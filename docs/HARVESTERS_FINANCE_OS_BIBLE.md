@@ -280,6 +280,17 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
   disbursement, only after all required signatures are satisfied.
 - **Withholding tax (WHT)** is auto‑computed (generated columns) and tracked in a
   remittance log (owed / partially remitted / remitted / overdue).
+- **Bulk intake & processing uploads:** a **Requisitions spreadsheet import**
+  (rows land as submitted requests with WHT auto‑computed and a budget line
+  auto‑linked) and a **Disbursement References import** for finance (bank‑upload
+  / transfer references → pending‑signature disbursements).
+- **Budget availability is clickable:** the callout shows *approved − committed
+  = available* for each budget line, listing the requisitions consuming it.
+- **Track my requests** is paginated; each request opens its **approval chain**
+  showing exactly whose approval is pending, with a **Send reminder** (nudge)
+  that notifies the pending approver in‑app plus queued email/WhatsApp.
+- **Decision notifications:** the requester is automatically notified when their
+  requisition is approved or rejected.
 
 ### 9.3 Payroll & Honorariums
 - **Staff registry** distinguishing `minister_clergy` vs `administrative`, with
@@ -369,7 +380,8 @@ handover.
 
 A single reusable pipeline — **stage → validate (dry‑run preview) → commit** —
 behind a hub at `/imports` and a reusable **Import** button on any list page.
-Twelve import types, each with a **downloadable template + data dictionary**:
+Fourteen import types, each with a **downloadable template + data dictionary**:
+Requisitions and Disbursement References (see §9.2), plus:
 Givers/Contacts, Historical Giving, Opening Balances, Bank Statement, Chart of
 Accounts, Vendors, Pledges, FX Rates, Investments, Staff, Restricted Funds,
 Entities/Campuses.
@@ -501,14 +513,45 @@ Group 4) → sub‑groups → 41 campuses across currencies; ~3,700 givers and ~
 gifts posted to the ledger (which **balances to ~₦18.8bn**); income in the right
 magnitudes (₦17bn + £12m + $4.4m + …); payroll with PAYE, budgets, funds,
 investments; NLP partnerships and **two prayer conferences (Nigeria ₦2.5bn,
-London £1.2m)**; requisitions → disbursements + WHT; reconciliation; and
-governance records.
+London £1.2m)**; requisitions → disbursements + WHT; reconciliation; governance
+records; and pre‑seeded **weekly income reports** for the Gbagada and UK
+sub‑groups so the report inbox is live on first open.
 
-**Reset** snapshots the pre‑seed baseline and restores it exactly; it `TRUNCATE`s
-the transactional tables (which bypasses the ledger immutability guard, so the
-admin reset is clean) and removes only demo entities/users. Nothing outside the
-demo is touched. Demo logins use password `Test1234!` (see the README for the
-list; e.g. `admin@harvestersng.org`, `dayo.ogunrombi@harvestersng.org`).
+Demo logins use password `Test1234!` (see the README for the list; e.g.
+`admin@harvestersng.org`, `dayo.ogunrombi@harvestersng.org`). *Demo‑only
+convention:* each campus admin also holds `campus_pastor`, so personal approval
+queues and nudges light up during the presentation; in production, real pastors
+are granted through Admin → Access & Roles.
+
+### What a reset removes vs. what remains
+
+**The platform has two layers.** Layer 1 is the *machine*: application code (in
+git) and database *structure* (tables, views, triggers, functions, RLS —
+migrations `0001…0021`). Layer 2 is the *contents*: the rows of demo data. The
+reset removes **rows only** — it never drops or alters structure, and it never
+touches application code. So **every feature and every bug fix survives a reset**:
+the ledger guarantees, dashboards, imports, weekly‑report engine, notifications,
+the `create_vendor` / lapsed‑partner / JSONB fixes — all of it.
+
+| Survives ✅ | Removed 🗑️ |
+| --- | --- |
+| All application code & pages | Every demo transaction (ledger, gifts, payroll, requisitions…) |
+| All tables/views/triggers/functions (incl. fixed ones) | Demo givers, demo logins and their role grants |
+| Chart of accounts, giving types, approval templates, tax rules* | Demo entities (4‑group tree); pre‑seed entities restored to their exact prior shape |
+| Encryption keys (Vault), RLS policies | Pre‑seeded weekly reports, notifications, queued messages, import batches |
+| Pre‑seed users (e.g. real admin) & their roles | Audit rows created during the demo (above the baseline high‑water mark) |
+
+*Mechanics:* the **first seed run snapshots the pre‑seed baseline**
+(`mock_keep` / `mock_entity_prev` / an audit high‑water mark). Reset `TRUNCATE`s
+the transactional tables (TRUNCATE bypasses the ledger's row‑level immutability
+guard, which is why this admin path can clear an otherwise append‑only ledger),
+deletes only rows not in the baseline for configuration tables (*tax rules, FX,
+bank accounts, tiers*), restores snapshotted entities exactly, removes demo auth
+users, and finally drops its own bookkeeping tables. It has been round‑tripped
+(wipe → verify → re‑seed) during development. After a reset, real data enters
+through the same doors the demo used: the record screens, spreadsheet imports,
+and posting functions. Note that a reset returns a *clean* platform, not a
+*production‑hardened* one — §16 still applies before go‑live.
 
 ---
 
@@ -516,10 +559,16 @@ list; e.g. `admin@harvestersng.org`, `dayo.ogunrombi@harvestersng.org`).
 
 - **Environment:** `.env.local` (git‑ignored) holds the Supabase URL, publishable
   key, and the server‑only `DATABASE_URL`. Set the same in production hosting.
-- **Migrations:** `supabase/migrations/0001…0020`. Apply with the runner:
+- **Migrations:** `supabase/migrations/0001…0021`. Apply with the runner:
   `node --env-file=.env.local scripts/db-run.mjs supabase/migrations/*.sql`.
 - **Verification scripts** (`scripts/`): `test-ledger.mjs` (ledger integrity),
-  `rls-check.mjs`, `test-auth.mjs`, `test-givings.mjs`, `test-imports.mjs`.
+  `rls-check.mjs`, `test-auth.mjs`, `test-givings.mjs`, `test-imports.mjs`,
+  `test-pass2.mjs` (weekly reports, notifications, scoped dashboards, expense
+  imports, approval chains).
+- **Provider keys (optional until go‑live):** `ANTHROPIC_API_KEY` (AI reports &
+  analytics), `TERMII_API_KEY` + `TERMII_SENDER_ID` (WhatsApp/SMS),
+  `RESEND_API_KEY` + `EMAIL_FROM` (email). Everything queues gracefully without
+  them; nothing is lost.
 - **First run:** create the first account at `/login` (it bootstraps as
   `super_admin`), then assign everyone else under Admin → Access & Roles.
 
@@ -597,7 +646,9 @@ Before going fully live, address:
 
 ---
 
-*This document reflects the platform as built through migration `0020`, plus the
-app‑layer interactive dashboards, giving breakdown/analytics, scope‑aware home,
-global search, and spreadsheet‑import/bulk‑management features added since. It is a
-living reference — keep it beside the code and update it as the system grows.*
+*This document reflects the platform as built through migration `0021` — including
+the scope‑aware executive dashboards for every cadre, giving breakdown/analytics,
+global search, spreadsheet imports & bulk management, AI weekly income reports
+with in‑app delivery, and the notification layer (in‑app + email/WhatsApp/SMS
+outbox). It is a living reference — keep it beside the code and update it as the
+system grows.*

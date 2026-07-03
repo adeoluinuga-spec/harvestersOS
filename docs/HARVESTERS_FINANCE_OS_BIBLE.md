@@ -414,6 +414,40 @@ any list.
   lapsed‑major givers, expense anomaly flags, cash‑flow forecast) computed from
   the ledger.
 - Statements and reports are printable / PDF‑ready.
+- **Ask the ledger (AI):** a natural‑language analytics page turns questions into
+  scoped, read‑only SQL over approved reporting views (Anthropic‑powered). Dashboard
+  callouts can deep‑link here with a pre‑filled, auto‑running question.
+
+### Interactive Executive Dashboard
+The super‑admin / auditor home is a live executive dashboard, and **every other
+cadre gets a scope‑aware version** of it filtered to the entities they oversee:
+
+- **KPI cards** — consolidated giving, budget variance, restricted funds, pending
+  approvals (org‑wide), compliance attention, upcoming maturities. Figures use
+  compact notation (₦26.9bn / £1.2m); each card is **clickable** to a callout
+  showing the breakdown that feeds it, with an **Open →** to the module. Cards
+  that need action show a **red “Attention” pulse**; healthy ones a green dot.
+- **Charts (Recharts, mobile‑adaptable):** consolidated giving trend, income vs
+  expense, giving by group, and restricted‑fund funding progress.
+- **Group budget vs actual** — colour‑coded by utilisation (on‑track / near /
+  over), each group clickable to detail.
+- **Approvals** — an **All (org‑wide) / Mine** toggle. (A super‑admin is never a
+  chain approver, so “Mine” is legitimately empty; the metric is the org‑wide count.)
+- **Restricted funds / compliance / maturities** — severity‑coded lists; restricted
+  funds link to **AI analysis**; maturities open the all‑investments portfolio.
+- **Global search (scope‑aware):** the top‑bar search queries entities, givers,
+  vendors, and requisitions **restricted to the signed‑in user’s accessible
+  entities**, so each person only finds what they are allowed to see.
+
+### Giving Breakdown & Analytics
+`/givings/breakdown` presents an expandable **group → sub‑group → campus** tree
+(plus ministries such as NLP) with **characteristic totals** — Sunday offering,
+midweek offering, tithe, seed, partnership, redeemed pledges — and a **channel
+mix** (bank transfer / POS / cash / online). Sunday vs midweek is derived from the
+gift’s day‑of‑week. Clicking any entity opens a per‑entity analytics view with
+**Month‑on‑Month, Week‑on‑Week and Year‑on‑Year** charts and channel breakdown.
+NLP shows **daily + weekly inflow**. The giving home leads with a **weekly
+consolidated (NGN)** figure whose callout breaks down by currency.
 
 ---
 
@@ -543,5 +577,7 @@ Before going fully live, address:
 
 ---
 
-*This document reflects the platform as built through migration `0020`. It is a
+*This document reflects the platform as built through migration `0020`, plus the
+app‑layer interactive dashboards, giving breakdown/analytics, scope‑aware home,
+global search, and spreadsheet‑import/bulk‑management features added since. It is a
 living reference — keep it beside the code and update it as the system grows.*

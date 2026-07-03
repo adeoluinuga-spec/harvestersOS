@@ -40,16 +40,16 @@ export function KpiCard({
         className="group flex h-full w-full flex-col rounded-md border border-paper-200 bg-surface p-4 text-left shadow-card transition-all hover:-translate-y-0.5 hover:border-ink"
       >
         <div className="flex items-start justify-between gap-2">
-          <span className="font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
             {label}
           </span>
           {attention ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-status-danger-bg px-1.5 py-0.5 font-sans text-[9px] font-bold uppercase tracking-wide text-status-danger">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-danger shadow-[0_0_0_3px_rgba(139,43,43,0.20)]" />
-              Attention
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-status-danger-bg px-1.5 py-0.5 font-sans text-[9px] font-bold uppercase tracking-wide text-status-danger">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-status-danger" />
+              <span className="hidden sm:inline">Attention</span>
             </span>
           ) : (
-            <span className="h-2 w-2 rounded-full bg-status-success" title="Healthy" />
+            <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-status-success" title="Healthy" />
           )}
         </div>
         <div className="mt-2 truncate font-display text-2xl font-semibold tracking-display text-ink">

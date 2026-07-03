@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Search, ShieldCheck } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
 import { ALL_NAV_ITEMS } from "@/lib/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { SearchBox } from "./SearchBox";
 
 export function Topbar() {
   const pathname = usePathname();
@@ -42,11 +43,8 @@ export function Topbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="hidden h-10 items-center gap-2 rounded-full border border-paper-200 bg-surface px-3 shadow-card xl:flex">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <span className="font-sans text-xs text-muted-foreground">
-              Search coming soon
-            </span>
+          <div className="hidden sm:block">
+            <SearchBox />
           </div>
           {email && (
             <div className="hidden text-right sm:block">

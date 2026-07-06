@@ -40,25 +40,26 @@ access, document management, live bank/payment rails).
 - Set `APP_DATABASE_URL`, `AI_DATABASE_URL`, `CRON_SECRET` in production hosting.
 - Pin the patched SheetJS distribution (xlsx advisory).
 
-## Phase 2 — Operational depth (next)
+## Phase 2 — Operational depth ✅ (built July 2026)
 
-1. **Attachments everywhere** — invoices on requisitions, documents on JEs,
-   bank letters on vendors (Supabase Storage private buckets, reuse the
-   imports archive pattern). *An expense without an invoice is un-auditable.*
-2. **Live bank feeds** — real Mono/Okra API integration feeding
-   `bank_feed_transactions`; recon-aging KPI on the executive dashboard.
-3. **Daily FX** — automated CBN (or official source) rate ingestion with a
-   documented rate policy (transaction vs month-end close vs average).
-4. **Online giving ingestion** — Paystack/Flutterwave webhooks → giver
-   resolution → auto-posted, auto-reconciled gifts. Removes most manual entry
-   AND most reconciliation debt at once.
-5. **Intercompany eliminations** in `consolidated_statement_ngn` (transfers
-   between entities must not double-count group income/expense).
-6. **Fixed asset register** — capitalization, depreciation runs, disposal
-   (statutory requirement for incorporated trustees).
-7. **MFA enrollment UI** + enforcement for approvers and bank signatories.
-8. **Sub-ledger ↔ control account tie-outs** (pledges vs AR control, WHT log
-   vs WHT liability account).
+| # | Item | Status | Where |
+| --- | --- | --- | --- |
+| 1 | Document attachments (private bucket, 15MB, soft-delete, audit) — invoice upload on requisitions, finance queue shows attachments or a red "No invoice" badge | ✅ | `0029_documents.sql`, `lib/documents.ts`, `/api/documents/[id]` |
+| 2 | Fixed asset register: capitalize through the ledger, straight-line monthly depreciation (idempotent, nightly job), disposal with gain/loss | ✅ | `0030_fixed_assets.sql`, `/assets` |
+| 3 | Online giving ingestion: Paystack webhook (HMAC-verified, idempotent) → exact giver match → posted + reconciled gift; review queue for ambiguity | ✅ | `0031_online_giving.sql`, `/api/webhooks/paystack`, `/givings/online` |
+| 4 | Daily FX auto-ingestion (open.er-api.com default; `FX_RATE_SOURCE_URL` override) in nightly jobs | ✅ | `lib/fx.ts`, `/api/jobs` |
+| 5 | Mono bank-feed API sync + auto-match in nightly jobs (graceful without key) | ✅ | `lib/bankFeeds.ts` |
+| 6 | WHT in the ledger: disbursement posts gross expense / net bank / WHT Payable (2200); remittance posting clears it | ✅ | `0032_wht_intercompany_tieouts.sql` |
+| 7 | Intercompany accounts (1900/2900) + cross-border transfer posting + consolidation elimination rows | ✅ | `0032`, wired into International documenting flow |
+| 8 | Control tie-outs view (WHT log ↔ GL, intercompany symmetry) on Governance | ✅ | `0032`, Governance page |
+| 9 | MFA: TOTP enrollment at Account → Security; approvals & signatures require AAL2 once enrolled (soft enforcement) | ✅ | `components/security/MfaManager.tsx`, `lib/auth.ts` |
+| 10 | **Bonus bug fix:** exact giver matches were buried below fuzzy NULL rows (`order by is_exact desc` puts NULLs first) — the dedupe engine silently failed at scale | ✅ | `0033_fix_giver_match_ordering.sql` |
+
+**Still open in Phase 2 (needs owner action):** set `PAYSTACK_SECRET_KEY`
+(+ webhook URL in the Paystack dashboard), `MONO_SECRET_KEY` (+ create
+bank-feed connections), and decide the email posture (Resend vs org SMTP).
+Pledge↔AR control tie-out deferred until pledges post to an AR control
+account (accrual recognition decision for the board/auditor).
 
 ## Phase 3 — Scale & polish
 

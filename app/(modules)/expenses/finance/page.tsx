@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { humanize } from "@/lib/enums";
 import { money } from "@/lib/format";
 import { getBankAccounts, getDisbursements, getFinanceQueue } from "@/lib/requisitions";
+import { getDocumentCounts, getDocuments } from "@/lib/documents";
 import { ImportButton } from "@/components/ImportButton";
 import { createDisbursementAction, markDisbursedAction } from "../actions";
 
@@ -17,6 +18,16 @@ export default async function FinancePage() {
     getDisbursements(scope),
     getBankAccounts(scope),
   ]);
+  // Supporting documents for the requisitions in the queue (invoice check
+  // before money moves).
+  const requestIds = queue
+    .filter((q: Record<string, unknown>) => q.subject_type === "request")
+    .map((q: Record<string, unknown>) => String(q.subject_id));
+  const docCounts = await getDocumentCounts("requisition", requestIds);
+  const docsBySubject = new Map<string, Awaited<ReturnType<typeof getDocuments>>>();
+  for (const id of requestIds) {
+    if ((docCounts.get(id) ?? 0) > 0) docsBySubject.set(id, await getDocuments("requisition", id));
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -47,10 +58,24 @@ export default async function FinancePage() {
                 <TableRow key={`${q.subject_type}-${q.subject_id}`}>
                   <TableCell>
                     <div className="font-medium">{String(q.title)}</div>
-                    <div className="mt-1 flex gap-2">
+                    <div className="mt-1 flex flex-wrap gap-2">
                       <Badge variant="outline">{humanize(String(q.subject_type))}</Badge>
                       {q.is_urgent && <Badge className="border-status-warning/30 bg-status-warning-bg text-status-warning">Urgent</Badge>}
+                      {q.subject_type === "request" && !docsBySubject.has(String(q.subject_id)) && (
+                        <Badge className="border-status-danger/30 bg-status-danger-bg text-status-danger">No invoice</Badge>
+                      )}
                     </div>
+                    {docsBySubject.get(String(q.subject_id))?.map((doc) => (
+                      <a
+                        key={doc.id}
+                        href={`/api/documents/${doc.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 block truncate font-sans text-xs text-cobalt underline underline-offset-2"
+                      >
+                        📎 {doc.file_name}
+                      </a>
+                    ))}
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{money(String(q.net_payable_amount), String(q.currency))}</div>

@@ -64,6 +64,24 @@ export async function requireSuperAdmin(): Promise<AuthContext> {
 }
 
 /**
+ * Step-up (MFA) guard for money-moving actions. Soft enforcement: users who
+ * have enrolled and verified an authenticator must be at AAL2 for the current
+ * session; users with no factors are unaffected (enrollment is driven from
+ * /account/security). Throws with a human-readable message when a step-up is
+ * required.
+ */
+export async function assertStepUpIfEnrolled(): Promise<void> {
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (error || !data) return; // never block on an availability hiccup
+  if (data.nextLevel === "aal2" && data.currentLevel !== "aal2") {
+    throw new Error(
+      "This action requires two-factor verification. Open Account → Security and enter your authenticator code, then retry."
+    );
+  }
+}
+
+/**
  * Segregation-of-duties guard used before any approve/post action.
  * If the approver created the entry, the attempt is durably logged and refused.
  */

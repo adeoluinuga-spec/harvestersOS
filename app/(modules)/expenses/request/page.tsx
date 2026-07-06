@@ -117,6 +117,14 @@ export default async function RequestPage() {
                   placeholder="Required when the selected vendor is marked as a related party."
                 />
               </Field>
+              <Field label="Supporting document (invoice / quote)">
+                <input
+                  name="invoice_file"
+                  type="file"
+                  accept=".pdf,.png,.jpg,.jpeg,.webp,.xlsx,.xls,.csv,.doc,.docx"
+                  className="block w-full rounded-md border border-paper-300 bg-paper px-3 py-2 font-sans text-sm file:mr-3 file:rounded file:border-0 file:bg-ink file:px-3 file:py-1.5 file:font-sans file:text-xs file:font-semibold file:text-paper"
+                />
+              </Field>
               <div className="grid gap-4 sm:grid-cols-3">
                 <label className="flex items-center gap-2 rounded border border-paper-300 px-3 py-2 font-sans text-sm">
                   <input name="is_urgent" type="checkbox" className="h-4 w-4" />

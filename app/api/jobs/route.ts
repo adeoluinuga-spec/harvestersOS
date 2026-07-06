@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { sql } from "@/lib/db";
 import { processMessageOutbox } from "@/lib/notify";
+import { ingestDailyFxRates } from "@/lib/fx";
+import { syncMonoBankFeeds } from "@/lib/bankFeeds";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -32,6 +34,10 @@ export async function GET(request: NextRequest) {
   if (only !== "outbox") {
     const [row] = await sql<{ run_nightly_jobs: unknown }[]>`select public.run_nightly_jobs()`;
     result.nightly = row.run_nightly_jobs;
+    // App-tier integrations (need fetch): daily FX + Mono bank feeds.
+    // Each degrades to a report line, never a failed job run.
+    try { result.fx = await ingestDailyFxRates(); } catch (e) { result.fx = { error: (e as Error).message }; }
+    try { result.bank_feeds = await syncMonoBankFeeds(); } catch (e) { result.bank_feeds = { error: (e as Error).message }; }
   }
 
   return NextResponse.json({ ok: true, ran_at: new Date().toISOString(), ...result });

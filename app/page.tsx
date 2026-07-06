@@ -2,7 +2,7 @@ import Link from "next/link";
 import {
   ArrowUpRight, BarChart3, Building2, CalendarDays, FileBarChart2, Globe2,
   HandCoins, Landmark, LineChart, LockKeyhole, PiggyBank, ReceiptText,
-  ShieldCheck, Sparkles, UsersRound,
+  ShieldCheck, Sparkles, UsersRound, Warehouse,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
@@ -23,7 +23,7 @@ export const dynamic = "force-dynamic";
 
 const MODULE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "/givings": HandCoins, "/expenses": ReceiptText, "/payroll": UsersRound, "/budgeting": BarChart3,
-  "/funds": PiggyBank, "/events": CalendarDays, "/next-level-prayers": Sparkles, "/international": Globe2,
+  "/funds": PiggyBank, "/assets": Warehouse, "/events": CalendarDays, "/next-level-prayers": Sparkles, "/international": Globe2,
   "/governance": ShieldCheck, "/reconciliation": Landmark, "/analytics": LineChart, "/reports": FileBarChart2,
   "/imports": FileBarChart2, "/admin": LockKeyhole,
 };

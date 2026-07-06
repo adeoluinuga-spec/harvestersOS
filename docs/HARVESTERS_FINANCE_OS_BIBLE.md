@@ -274,8 +274,14 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
 - **Pledges/vows as receivables** with auto‑calculated outstanding balance and an
   **AR‑style aging report**.
 - **Giving statements** — per‑giver, per‑year, printable for tax purposes.
+- **Online payments (Paystack).** Webhook‑ingested charges resolve to a giver
+  by exact email/phone through the same identity engine, post to the ledger
+  and arrive already reconciled (processor‑settled). Ambiguous payments wait
+  in a review queue (`/givings/online`); nothing is guessed. Idempotent
+  against webhook retries. Flutterwave‑ready schema.
 - **Screens:** dashboard, fast batch record‑giving for clerks, giver search +
-  unified history, duplicates queue, pledges + aging, statements.
+  unified history, duplicates queue, pledges + aging, statements, online
+  payments inbox.
 
 ### 9.2 Requisitions & Disbursements (Expenses)
 - Request intake with vendor selection, urgency, WHT fields, and branch/level
@@ -288,7 +294,13 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
 - **Ledger close‑out:** a posted expense journal entry is generated on final
   disbursement, only after all required signatures are satisfied.
 - **Withholding tax (WHT)** is auto‑computed (generated columns) and tracked in a
-  remittance log (owed / partially remitted / remitted / overdue).
+  remittance log (owed / partially remitted / remitted / overdue). Since 0032
+  the ledger carries it properly: disbursement posts **gross expense / net
+  bank / WHT Payable (2200)**, and remittance clears the liability — with a
+  continuous **tie‑out control** (Governance) comparing the log to the GL.
+- **Supporting documents.** An invoice/quote can be attached at request time
+  (private storage; 15 MB; PDF/image/Office). Finance sees the attachment —
+  or a red **"No invoice"** badge — before any money moves.
 - **Bulk intake & processing uploads:** a **Requisitions spreadsheet import**
   (rows land as submitted requests with WHT auto‑computed and a budget line
   auto‑linked) and a **Disbursement References import** for finance (bank‑upload
@@ -333,7 +345,17 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
 - **Investments** (fixed deposits, treasury bills, …) with maturity alerts and
   expected‑vs‑actual yield tracking.
 
-### 9.6 Events
+### 9.6 Fixed Assets
+- **Register per entity** (buildings, land, vehicles, generators, equipment,
+  AV, furniture) — capitalized **through the ledger** (debit Fixed Assets
+  1500 / credit Bank, or Opening Balance Equity for pre‑existing assets).
+- **Straight‑line monthly depreciation** posted as balanced entries (debit
+  6100 / credit Accumulated Depreciation 1510), idempotent per asset per
+  month, run by the nightly job and on demand from `/assets`.
+- **Disposal** posts automatic gain/loss (4090 / 6110). Accumulated
+  depreciation and net book value are always **derived**, never stored.
+
+### 9.7 Events
 - Events are **temporary cost‑centre entities** with their own mini‑P&L.
 - Revenue lines (tickets, sponsorships, exhibitor fees, on‑site giving,
   offerings, merchandise) and cost lines (venue, logistics, speaker honorarium,
@@ -343,7 +365,7 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
 - **Close‑out report** with net position, cost per attendee, inventory close‑out,
   and historical comparison by event type.
 
-### 9.7 Next Level Prayers (Ministry Directorate)
+### 9.8 Next Level Prayers (Ministry Directorate)
 - A **partner directory** where each partner resolves to a unique giver, with
   configurable **partnership tiers** and monthly commitments; fulfilment flows
   through the shared giving model and **lapse detection** surfaces partners who
@@ -353,14 +375,21 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
   revenue** schedules over the access period.
 - **Resident‑intercessor stipends** route through the honorarium path.
 
-### 9.8 International (Multi‑Currency & Cross‑Border)
+### 9.9 International (Multi‑Currency & Cross‑Border)
 - Consolidated (NGN) vs statutory (single legal entity) reporting toggle.
-- **FX rate capture** and historical translation.
+- **FX rate capture** and historical translation, plus **automated daily
+  rates** ingested by the nightly job (open.er-api.com by default; swap
+  `FX_RATE_SOURCE_URL` for an official CBN feed).
 - **Cross‑border transfers** requiring documentation before moving beyond
-  pending review, with group‑level approval controls.
+  pending review, with group‑level approval controls. A documented transfer
+  now **posts linked ledger entries** through intercompany accounts (Due From
+  1900 / Due To 2900), and consolidation emits **elimination rows** so group
+  totals never double‑count internal money moves.
 
-### 9.9 Reconciliation & Cash Custody
-- **Bank feed** ingestion (Mono/Okra/manual) per bank account.
+### 9.10 Reconciliation & Cash Custody
+- **Bank feed** ingestion (Mono/Okra/manual) per bank account — with a real
+  **Mono API sync** in the nightly job once `MONO_SECRET_KEY` is set
+  (transactions pulled per connection, then auto‑matched).
 - **Auto‑matching** of bank transactions to journal entry lines (by amount, date
   proximity, currency, entity, description similarity), with a manual review
   queue for the rest.
@@ -368,17 +397,20 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
 - **Cash count sessions** with **dual‑counter enforcement** and **cash deposits**
   with automatic variance calculation and flagging.
 
-### 9.10 Governance & Compliance
+### 9.11 Governance & Compliance
 - **NFIU large‑cash awareness** via a configurable threshold view.
 - **SCUML compliance log** per legal entity.
 - **WHT remittance dashboard** (owed / remitted / outstanding / overdue).
+- **Control tie‑outs** — continuous sub‑ledger ↔ GL reconciliation (WHT
+  Payable vs remittance log; intercompany due‑from vs due‑to) with variance
+  highlighting.
 - **Related‑party enforcement** (disclosure required; higher‑tier routing) and a
   **conflict‑of‑interest registry**.
 - **Whistleblower channel** with anonymous submissions and governance‑only
   visibility.
 - **Audit log viewer** with filters, CSV export, and print output.
 
-### 9.11 Admin
+### 9.12 Admin
 User↔entity↔role assignment, chart of accounts, entity management, approval‑chain
 configuration, and the seeded role‑slot registry for placeholder→real‑person
 handover.
@@ -495,6 +527,11 @@ consolidated (NGN)** figure whose callout breaks down by currency.
 ## 13. Security Model
 
 - **Authentication** via Supabase Auth; **middleware** gates every route.
+- **Two‑factor authentication (TOTP).** Any user can enroll an authenticator
+  under **Account → Security**. Once enrolled, approving requisitions and
+  signing disbursements demand a verified (AAL2) session — a stolen password
+  alone can no longer move money. Enrollment is soft‑enforced today;
+  organisation‑wide mandates are a policy switch away.
 - **Authorisation** is entity‑scoped and cascades through the hierarchy; global
   roles (`super_admin`, `auditor`) are the only entity‑less ones.
 - **Segregation of duties** in two layers (app + database).
@@ -676,10 +713,14 @@ Before going fully live, still address:
 
 ---
 
-*This document reflects the platform as built through migration `0028` —
+*This document reflects the platform as built through migration `0033` —
 including the accounting‑period/close layer, gapless entry numbering,
-least‑privilege database roles, tracked migrations, background jobs, and the
-ledger integrity test suite (see `docs/ENTERPRISE_ROADMAP.md`) — plus
+least‑privilege database roles, tracked migrations, background jobs, the
+ledger integrity test suite, and the Phase 2 operational layer: document
+attachments, fixed assets & depreciation, online giving ingestion (Paystack),
+daily FX + Mono bank‑feed sync, WHT‑in‑the‑ledger with tie‑out controls,
+intercompany eliminations, and TOTP two‑factor authentication (see
+`docs/ENTERPRISE_ROADMAP.md`) — plus
 the scope‑aware executive dashboards for every cadre, giving breakdown/analytics,
 global search, spreadsheet imports & bulk management, AI weekly income reports
 with in‑app delivery, and the notification layer (in‑app + email/WhatsApp/SMS

@@ -119,4 +119,19 @@ export async function documentCrossBorderTransfer(
            approved_by = ${d.actor},
            reviewed_at = now()
      where id = ${d.transferId}`;
+  // A documented transfer is real money moving between legal entities: post
+  // the linked ledger entries through the intercompany accounts (idempotent —
+  // re-documenting never double-posts). Eliminated automatically on
+  // consolidation.
+  if (d.status === "documented") {
+    await exec`select public.post_cross_border_transfer(${d.transferId}, ${d.actor})`;
+  }
+}
+
+/** Sub-ledger ↔ GL tie-out controls (WHT payable, intercompany symmetry). */
+export async function getControlTieouts() {
+  return sql<
+    { control: string; description: string; gl_amount_ngn: string; subledger_amount_ngn: string; variance_ngn: string; note: string }[]
+  >`select control, description, gl_amount_ngn::text, subledger_amount_ngn::text, variance_ngn::text, note
+    from public.control_tieouts`;
 }

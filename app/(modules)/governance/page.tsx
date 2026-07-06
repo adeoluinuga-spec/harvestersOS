@@ -27,6 +27,7 @@ import {
   getStaffForGovernance,
   getTrusteeUsers,
 } from "@/lib/governance";
+import { getControlTieouts } from "@/lib/international";
 import {
   createConflictAction,
   createWhistleblowerAction,
@@ -71,12 +72,13 @@ export default async function GovernancePage({
   const action = String(searchParams?.action ?? "") || null;
   const startDate = String(searchParams?.start_date ?? yearStart);
   const endDate = String(searchParams?.end_date ?? today);
-  const [dashboard, entities, staff, trustees, auditRows] = await Promise.all([
+  const [dashboard, entities, staff, trustees, auditRows, tieouts] = await Promise.all([
     getGovernanceDashboard(scope),
     getEntitiesForGovernance(scope),
     getStaffForGovernance(scope),
     getTrusteeUsers(),
     getAuditLogRows({ scope, entityId, action, startDate, endDate }),
+    getControlTieouts(),
   ]);
   const csvHref = `/governance/audit-export?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}${entityId ? `&entity_id=${encodeURIComponent(entityId)}` : ""}${action ? `&action=${encodeURIComponent(action)}` : ""}`;
   const printHref = `/governance/audit-print?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}${entityId ? `&entity_id=${encodeURIComponent(entityId)}` : ""}${action ? `&action=${encodeURIComponent(action)}` : ""}`;
@@ -103,6 +105,37 @@ export default async function GovernancePage({
         <Metric label="Conflicts" value={dashboard.conflicts.length} />
         <Metric label="Whistleblower" value={dashboard.whistleblower.length} />
       </div>
+
+      <Card>
+        <CardHeader><CardTitle>Control tie-outs (sub-ledger ↔ general ledger)</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableHeaderCell>Control</TableHeaderCell>
+                <TableHeaderCell className="text-right">GL (NGN)</TableHeaderCell>
+                <TableHeaderCell className="text-right">Sub-ledger (NGN)</TableHeaderCell>
+                <TableHeaderCell className="text-right">Variance</TableHeaderCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {tieouts.map((t) => (
+                <TableRow key={t.control}>
+                  <TableCell>
+                    <div className="font-medium">{t.description}</div>
+                    <div className="font-sans text-xs text-muted-foreground">{t.note}</div>
+                  </TableCell>
+                  <TableCell className="text-right">{money(t.gl_amount_ngn)}</TableCell>
+                  <TableCell className="text-right">{money(t.subledger_amount_ngn)}</TableCell>
+                  <TableCell className={`text-right font-medium ${Number(t.variance_ngn) === 0 ? "text-status-success" : "text-status-danger"}`}>
+                    {money(t.variance_ngn)}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>

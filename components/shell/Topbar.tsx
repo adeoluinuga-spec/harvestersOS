@@ -49,14 +49,22 @@ export function Topbar() {
           {email && (
             <div className="hidden text-right sm:block">
               <div className="font-sans text-xs font-semibold text-ink">{email}</div>
-              <button
-                type="button"
-                onClick={logout}
-                className="inline-flex items-center gap-1 font-sans text-[11px] font-semibold text-muted-foreground transition-colors hover:text-ink"
-              >
-                <LogOut className="h-3 w-3" />
-                Sign out
-              </button>
+              <div className="flex items-center justify-end gap-3">
+                <a
+                  href="/account/security"
+                  className="font-sans text-[11px] font-semibold text-muted-foreground transition-colors hover:text-ink"
+                >
+                  Security
+                </a>
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="inline-flex items-center gap-1 font-sans text-[11px] font-semibold text-muted-foreground transition-colors hover:text-ink"
+                >
+                  <LogOut className="h-3 w-3" />
+                  Sign out
+                </button>
+              </div>
             </div>
           )}
           <div className="flex h-11 w-11 items-center justify-center rounded-full border border-champagne/45 bg-ink font-display text-xl font-semibold uppercase text-champagne shadow-lift">

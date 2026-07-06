@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Sparkles,
   UsersRound,
+  Warehouse,
 } from "lucide-react";
 import { NAV_SECTIONS } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ const ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "/payroll": UsersRound,
   "/budgeting": BarChart3,
   "/funds": PiggyBank,
+  "/assets": Warehouse,
   "/events": CalendarDays,
   "/next-level-prayers": Sparkles,
   "/international": Globe2,

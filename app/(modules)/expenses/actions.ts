@@ -2,9 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser, type AuthContext } from "@/lib/auth";
+import { assertStepUpIfEnrolled, requireUser, type AuthContext } from "@/lib/auth";
 import { checkBudgetRequisition } from "@/lib/budgeting";
 import { withActor } from "@/lib/db";
+import { attachDocument } from "@/lib/documents";
 import {
   createBatch as repoCreateBatch,
   createDisbursement as repoCreateDisbursement,
@@ -76,7 +77,7 @@ export async function createRequestAction(formData: FormData) {
     }
     budgetWarning = Boolean(budgetCheck?.exceeds_budget && budgetCheck.enforcement_mode === "warn");
   }
-  await withActor(ctx.user.id, (tx) =>
+  const requestId = await withActor(ctx.user.id, (tx) =>
     repoCreateRequest(
       {
         entityId,
@@ -100,6 +101,27 @@ export async function createRequestAction(formData: FormData) {
       tx
     )
   );
+  // Attach the supporting invoice/quote if one was provided. Best-effort:
+  // a storage hiccup must not lose the requisition itself.
+  const invoice = formData.get("invoice_file");
+  if (invoice instanceof File && invoice.size > 0) {
+    try {
+      await withActor(ctx.user.id, (tx) =>
+        attachDocument(
+          {
+            subjectType: "requisition",
+            subjectId: requestId,
+            entityId,
+            file: invoice,
+            actorId: ctx.user.id,
+          },
+          tx
+        )
+      );
+    } catch {
+      /* requisition stands; the document can be re-attached later */
+    }
+  }
   revalidatePath("/expenses");
   revalidatePath("/expenses/track");
   redirect(`/expenses/track?created=1${budgetWarning ? "&budget=warning" : ""}`);
@@ -117,6 +139,11 @@ export async function compileBatchAction(formData: FormData) {
 
 export async function decideApprovalAction(formData: FormData) {
   const ctx = await requireUser();
+  try {
+    await assertStepUpIfEnrolled();
+  } catch {
+    redirect("/expenses/approvals?error=mfa_required");
+  }
   const id = String(formData.get("approval_id") || "");
   const decision = String(formData.get("decision") || "approved") as "approved" | "rejected";
   await withActor(ctx.user.id, (tx) =>
@@ -159,6 +186,11 @@ export async function createDisbursementAction(formData: FormData) {
 
 export async function signDisbursementAction(formData: FormData) {
   const ctx = await requireUser();
+  try {
+    await assertStepUpIfEnrolled();
+  } catch {
+    redirect("/expenses/signatures?error=mfa_required");
+  }
   await withActor(ctx.user.id, (tx) =>
     repoSignDisbursement(
       {

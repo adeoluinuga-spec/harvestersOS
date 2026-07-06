@@ -38,6 +38,7 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/budgeting", label: "Budgeting", glyph: "BD" },
       { href: "/funds", label: "Funds", glyph: "FD" },
+      { href: "/assets", label: "Fixed Assets", glyph: "FA" },
       { href: "/events", label: "Events", glyph: "EV" },
     ],
   },

@@ -61,13 +61,19 @@ bank-feed connections), and decide the email posture (Resend vs org SMTP).
 Pledge↔AR control tie-out deferred until pledges post to an AR control
 account (accrual recognition decision for the board/auditor).
 
-## Phase 3 — Scale & polish
+## Phase 3 — Scale & polish (core built July 2026)
 
-1. Materialized/incremental dashboard aggregates; partition `audit_log` by
-   month (it is already 86% of the database).
-2. Statement → account → journal entry → source document **drill-down report
-   writer** (the killer auditor feature; the data model already supports it).
-3. Keyboard-first batch giving grid (spreadsheet-style Sunday entry).
-4. Optimistic UI on approvals; accessible primitives (Radix/React Aria).
-5. Budget versions/scenarios and rolling forecast.
-6. Error tracking (Sentry) + uptime/outbox-backlog alerting.
+| # | Item | Status | Where |
+| --- | --- | --- | --- |
+| 1 | `audit_log` partitioned by month (was 86% of the DB); nightly job pre-creates next month's partition; default partition as safety net | ✅ | `0034_audit_log_partitioning.sql` |
+| 2 | Drill-down report writer: trial balance → account ledger → entry detail (lines, FX, provenance, reversal links, source documents) | ✅ | `0035_trial_balance.sql`, `/reports/trial-balance`, `/reports/ledger/[id]`, `/reports/entry/[id]` |
+| 3 | Keyboard-first batch giving grid (Enter = next row; per-row idempotent commit; giver identity engine per row) | ✅ | `/givings/batch` |
+| 4 | Optimistic approvals queue (instant decisions, server reconciliation, inline MFA/SoD errors) | ✅ | `ApprovalsQueue.tsx`, `decideApprovalDirect` |
+| 5 | Outbox-backlog self-alerting (super admins pinged in-app when messages queue > 24h) | ✅ | `run_nightly_jobs` (0034) |
+
+**Remaining Phase 3 backlog:**
+- Materialized/incremental dashboard aggregates (only worth it once row counts
+  hurt again — `amount_ngn` removed the hot spot).
+- Budget versions/scenarios and rolling forecast.
+- Accessible primitives sweep (Radix/React Aria for modals/menus), dark mode, i18n.
+- Error tracking (Sentry) + external uptime checks.

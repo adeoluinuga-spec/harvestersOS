@@ -156,6 +156,36 @@ export async function decideApprovalAction(formData: FormData) {
   redirect("/expenses/approvals?decided=1");
 }
 
+/**
+ * Direct (non-form) decision endpoint for the optimistic approvals queue.
+ * Same guards as the form path; returns a result instead of redirecting so
+ * the client can update instantly and reconcile.
+ */
+export async function decideApprovalDirect(input: {
+  approvalId: string;
+  decision: "approved" | "rejected";
+  comments: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const ctx = await requireUser();
+  try {
+    await assertStepUpIfEnrolled();
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+  try {
+    await withActor(ctx.user.id, (tx) =>
+      repoDecideApproval(input.approvalId, ctx.user.id, input.decision, input.comments, tx)
+    );
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+  try { await notifyDecision(input.approvalId, input.decision, ctx.user.id); } catch { /* never blocks */ }
+  revalidatePath("/expenses/approvals");
+  revalidatePath("/expenses/finance");
+  revalidatePath("/expenses/track");
+  return { ok: true };
+}
+
 export async function nudgeApprovalAction(formData: FormData) {
   const ctx = await requireUser();
   const requestId = String(formData.get("request_id") || "");

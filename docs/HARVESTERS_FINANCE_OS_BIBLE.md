@@ -229,6 +229,9 @@ record stores: **who** (actor), **when** (timestamp), **which entity**, the
 **action**, the **table & record**, and a **before/after JSON snapshot**.
 
 - Modules never have to "remember" to log — it is automatic and uniform.
+- The log is **partitioned by month** (`audit_log_yYYYYmMM`), so writes stay
+  fast forever and old months can be archived by policy; the nightly job
+  always keeps next month's partition ready.
 - The actor is resolved from the authenticated session (or the server‑set actor
   context for server writes), so audit is accurate even for backend operations.
 - Audit is **append‑only** and visible only to `super_admin` and compliance
@@ -279,9 +282,13 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
   and arrive already reconciled (processor‑settled). Ambiguous payments wait
   in a review queue (`/givings/online`); nothing is guessed. Idempotent
   against webhook retries. Flutterwave‑ready schema.
-- **Screens:** dashboard, fast batch record‑giving for clerks, giver search +
-  unified history, duplicates queue, pledges + aging, statements, online
-  payments inbox.
+- **Batch service entry** (`/givings/batch`) — keyboard‑first grid for the
+  Sunday count: Enter moves to the next row, each row resolves through the
+  giver identity engine, posts independently (a typo in row 14 never loses
+  rows 1–13) and is idempotent per row.
+- **Screens:** dashboard, batch service entry, record‑giving form, giver
+  search + unified history, duplicates queue, pledges + aging, statements,
+  online payments inbox.
 
 ### 9.2 Requisitions & Disbursements (Expenses)
 - Request intake with vendor selection, urgency, WHT fields, and branch/level
@@ -467,6 +474,11 @@ any list.
   lapsed‑major givers, expense anomaly flags, cash‑flow forecast) computed from
   the ledger.
 - Statements and reports are printable / PDF‑ready.
+- **Drill‑down report writer:** a scoped, period‑filtered **trial balance**
+  (`/reports/trial-balance`, closing entries excludable) where every account
+  opens its **journal entries**, and every entry opens its **lines, FX,
+  provenance (creator/approver/reversal links) and supporting documents** —
+  the auditor's walk from statement to source in three clicks.
 - **Ask the ledger (AI):** a natural‑language analytics page turns questions into
   scoped, read‑only SQL over approved reporting views (Anthropic‑powered). Dashboard
   callouts can deep‑link here with a pre‑filled, auto‑running question.
@@ -713,8 +725,11 @@ Before going fully live, still address:
 
 ---
 
-*This document reflects the platform as built through migration `0033` —
-including the accounting‑period/close layer, gapless entry numbering,
+*This document reflects the platform as built through migration `0035` —
+now also covering the Phase 3 layer: monthly‑partitioned audit log, the
+trial‑balance drill‑down report writer, the keyboard‑first batch giving grid,
+optimistic (no‑reload) approvals, and outbox‑backlog self‑alerting — on top
+of the Phase 1–2 layers: the accounting‑period/close layer, gapless entry numbering,
 least‑privilege database roles, tracked migrations, background jobs, the
 ledger integrity test suite, and the Phase 2 operational layer: document
 attachments, fixed assets & depreciation, online giving ingestion (Paystack),

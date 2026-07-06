@@ -39,11 +39,21 @@ export default async function GivingsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <div className="space-y-1">
-        <h2 className="font-display text-2xl tracking-display text-ink">Givings</h2>
-        <p className="font-sans text-sm text-muted-foreground">
-          Every gift posts to the immutable ledger and rolls up to one giver identity.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="font-display text-2xl tracking-display text-ink">Givings</h2>
+          <p className="font-sans text-sm text-muted-foreground">
+            Every gift posts to the immutable ledger and rolls up to one giver identity.
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Link href="/givings/batch" className="font-sans text-sm font-semibold text-ink underline-offset-2 hover:underline">
+            Batch service entry →
+          </Link>
+          <Link href="/givings/online" className="font-sans text-sm text-muted-foreground hover:text-ink">
+            Online payments
+          </Link>
+        </div>
       </div>
 
       {/* KPI cards */}

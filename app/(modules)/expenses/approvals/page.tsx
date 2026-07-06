@@ -1,73 +1,55 @@
 import Link from "next/link";
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Field, Table, TableBody, TableCell, TableHead, TableHeaderCell, TableRow, Textarea } from "@/components/ui";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
-import { humanize } from "@/lib/enums";
-import { money } from "@/lib/format";
 import { getApprovalInbox } from "@/lib/requisitions";
-import { decideApprovalAction } from "../actions";
+import { ApprovalsQueue, type ApprovalItem } from "../_components/ApprovalsQueue";
 
 export const dynamic = "force-dynamic";
 
-export default async function ApprovalsPage() {
+export default async function ApprovalsPage({
+  searchParams,
+}: {
+  searchParams?: Record<string, string | string[] | undefined>;
+}) {
   const ctx = await requireUser();
   const roles = Array.from(new Set(ctx.roles.map((r) => r.role)));
   const rows = await getApprovalInbox(roles);
+  const mfaError = searchParams?.error === "mfa_required";
+
+  const items: ApprovalItem[] = rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    subject_type: r.subject_type,
+    approver_role: r.approver_role,
+    sequence_order: r.sequence_order,
+    entity_name: r.entity_name,
+    amount: String(r.amount),
+    currency: r.currency,
+    is_urgent: Boolean(r.is_urgent),
+    is_board_step: Boolean(r.is_board_step),
+  }));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-4xl space-y-6">
       <div className="space-y-1">
-        <Link href="/expenses" className="font-sans text-xs text-muted-foreground hover:text-ink">Back to requisitions</Link>
+        <Link href="/expenses" className="font-sans text-xs text-muted-foreground hover:text-ink">
+          Back to requisitions
+        </Link>
         <h2 className="font-display text-3xl tracking-display text-ink">Approvals inbox</h2>
       </div>
+      {mfaError && (
+        <p className="rounded border border-status-danger/30 bg-status-danger-bg px-3 py-2 font-sans text-sm text-status-danger">
+          Two-factor verification required — open <Link href="/account/security" className="underline">Account → Security</Link>,
+          enter your authenticator code, then retry.
+        </p>
+      )}
       <Card>
-        <CardHeader><CardTitle>Ready for your role</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>Ready for your role</CardTitle>
+          <CardDescription>Decisions apply instantly — no page reloads between approvals</CardDescription>
+        </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableHeaderCell>Item</TableHeaderCell>
-                <TableHeaderCell>Role step</TableHeaderCell>
-                <TableHeaderCell>Entity</TableHeaderCell>
-                <TableHeaderCell className="text-right">Amount</TableHeaderCell>
-                <TableHeaderCell>Decision</TableHeaderCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.length === 0 && (
-                <TableRow><TableCell colSpan={5} className="text-muted-foreground">No approvals are currently waiting on your roles.</TableCell></TableRow>
-              )}
-              {rows.map((r) => (
-                <TableRow key={r.id}>
-                  <TableCell>
-                    <div className="font-medium">{r.title}</div>
-                    <div className="mt-1 flex gap-2">
-                      <Badge variant="outline">{humanize(r.subject_type)}</Badge>
-                      {r.is_urgent && <Badge className="border-status-warning/30 bg-status-warning-bg text-status-warning">Urgent</Badge>}
-                      {r.is_board_step && <Badge className="border-status-danger/30 bg-status-danger-bg text-status-danger">Board gate</Badge>}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-sans text-sm">{humanize(r.approver_role)}</div>
-                    <div className="font-sans text-xs text-muted-foreground">Sequence {r.sequence_order}</div>
-                  </TableCell>
-                  <TableCell>{r.entity_name}</TableCell>
-                  <TableCell className="text-right font-medium">{money(r.amount, r.currency)}</TableCell>
-                  <TableCell className="min-w-[260px]">
-                    <form action={decideApprovalAction} className="space-y-2">
-                      <input type="hidden" name="approval_id" value={r.id} />
-                      <Field>
-                        <Textarea name="comments" placeholder="Comments or rejection reason" className="min-h-[68px]" />
-                      </Field>
-                      <div className="flex gap-2">
-                        <Button type="submit" name="decision" value="approved" size="sm">Approve</Button>
-                        <Button type="submit" name="decision" value="rejected" variant="danger" size="sm">Reject</Button>
-                      </div>
-                    </form>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ApprovalsQueue items={items} />
         </CardContent>
       </Card>
     </div>

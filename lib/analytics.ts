@@ -1,5 +1,5 @@
 import "server-only";
-import { sql } from "./db";
+import { aiSql, sql } from "./db";
 import type { AuthContext } from "./auth";
 
 export type Scope = "all" | string[];
@@ -22,7 +22,7 @@ const ANALYTICS_VIEWS = [
   "analytics_lapsed_major_givers",
   "analytics_cash_flow_forecast",
   "analytics_expense_anomaly_flags",
-  "budget_rollup_view",
+  "budget_vs_actual_rollup",
 ];
 
 const FORBIDDEN_SQL =
@@ -207,7 +207,10 @@ async function generateAnalyticsSql(prompt: string, scope: Scope) {
 
 async function runReadOnlyAnalyticsSql(query: string, scope: Scope) {
   validateAnalyticsSql(query, scope);
-  const rows = await sql.unsafe(query);
+  // Runs on the hfos_ai connection: SELECT-only grants on the approved views'
+  // closure, forced read-only transactions, 10s statement timeout. The regex
+  // validator is a first filter; the database role is the real fence.
+  const rows = await aiSql.unsafe(query);
   return normalizeRows(rows).slice(0, 500);
 }
 

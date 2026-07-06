@@ -10,6 +10,12 @@ import {
 import { withActor } from "@/lib/db";
 import { requireSuperAdmin } from "@/lib/auth";
 import { humanize, isGlobalRole } from "@/lib/enums";
+import {
+  closeFiscalYear,
+  closePeriod,
+  closePeriodsThrough,
+  reopenPeriod,
+} from "@/lib/periods";
 
 export type FormState = { ok?: boolean; error?: string; message?: string };
 
@@ -138,4 +144,62 @@ export async function revokeRole(formData: FormData): Promise<void> {
   if (!id) return;
   await withActor(ctx.user.id, (tx) => repoRevokeRole(id, tx));
   revalidatePath("/admin/access");
+}
+
+// ---------------------------------------------------------------------------
+// Fiscal periods & year-end close
+// ---------------------------------------------------------------------------
+export async function closePeriodAction(formData: FormData): Promise<void> {
+  const ctx = await requireSuperAdmin();
+  const start = String(formData.get("period_start") || "");
+  if (!start) return;
+  await withActor(ctx.user.id, (tx) => closePeriod(start, ctx.user.id, tx));
+  revalidatePath("/admin/periods");
+}
+
+export async function reopenPeriodAction(formData: FormData): Promise<void> {
+  const ctx = await requireSuperAdmin();
+  const start = String(formData.get("period_start") || "");
+  if (!start) return;
+  await withActor(ctx.user.id, (tx) => reopenPeriod(start, ctx.user.id, tx));
+  revalidatePath("/admin/periods");
+}
+
+export async function closePeriodsThroughAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const ctx = await requireSuperAdmin();
+  const through = String(formData.get("through") || "");
+  if (!through) return { error: "Pick a cut-off date." };
+  try {
+    const n = await withActor(ctx.user.id, (tx) =>
+      closePeriodsThrough(through, ctx.user.id, tx)
+    );
+    revalidatePath("/admin/periods");
+    return { ok: true, message: `Closed ${n} period(s).` };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+}
+
+export async function closeFiscalYearAction(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const ctx = await requireSuperAdmin();
+  const year = Number(formData.get("fiscal_year") || 0);
+  if (!Number.isInteger(year) || year < 2000) return { error: "Pick a fiscal year." };
+  try {
+    const result = (await withActor(ctx.user.id, (tx) =>
+      closeFiscalYear(year, ctx.user.id, tx)
+    )) as { closing_entries?: number };
+    revalidatePath("/admin/periods");
+    return {
+      ok: true,
+      message: `Fiscal year ${year} closed — ${result?.closing_entries ?? 0} closing entr(ies) posted to retained earnings.`,
+    };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
 }

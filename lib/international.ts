@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import { sql, type Exec } from "./db";
 
 type Scope = "all" | string[];
@@ -79,7 +79,7 @@ export async function getCrossBorderTransfers(scope: Scope) {
     from public.cross_border_transfers cbt
     join public.entities s on s.id = cbt.sending_entity_id
     join public.entities r on r.id = cbt.receiving_entity_id
-    left join auth.users au on au.id = cbt.approved_by
+    left join public.app_users au on au.id = cbt.approved_by
     where ${filter}
     order by cbt.created_at desc`;
 }

@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import { sql, type Exec } from "./db";
 
 type Scope = "all" | string[];
@@ -102,7 +102,7 @@ export async function manualMatch(
 export async function getUsersForCashCount() {
   return sql`
     select id, email
-    from auth.users
+    from public.app_users
     order by email`;
 }
 

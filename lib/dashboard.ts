@@ -52,7 +52,7 @@ export async function getExecutiveData(ctx: AuthContext) {
     givingByGroup, givingTrend, incomeExpense, budgetByGroup,
     fundProgress, approvalsMine, approvalsAll, approvalsByRole, compliance, maturities,
   ] = await Promise.all([
-    sql`select coalesce(sum(round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2)),0) v,
+    sql`select coalesce(sum(gr.amount_ngn),0) v,
                count(*)::int n
         from public.giving_records gr
         where gr.transaction_date between ${yearStart} and ${today} and ${scoped("gr.entity_id", scope)}`,
@@ -78,13 +78,13 @@ export async function getExecutiveData(ctx: AuthContext) {
               and ${scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`(cbt.sending_entity_id in ${sql(scope)} or cbt.receiving_entity_id in ${sql(scope)})`}) as v`,
 
     sql`${focusTree}
-      select t.grp name, coalesce(sum(case when gr.id is not null then round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2) else 0 end),0) amount
+      select t.grp name, coalesce(sum(gr.amount_ngn),0) amount
       from tree t
       left join public.giving_records gr on gr.entity_id=t.eid and gr.transaction_date between ${yearStart} and ${today}
       group by t.grp order by amount desc`,
 
     sql`select to_char(date_trunc('month', gr.transaction_date),'Mon') label, date_trunc('month', gr.transaction_date) ord,
-        coalesce(sum(round(gr.amount * public.fx_rate_at(gr.currency::text,'NGN',gr.transaction_date),2)),0) amount
+        coalesce(sum(gr.amount_ngn),0) amount
       from public.giving_records gr
       where gr.transaction_date >= (date_trunc('month',current_date)-interval '11 months') and ${scoped("gr.entity_id", scope)}
       group by 1,2 order by 2`,
@@ -93,7 +93,8 @@ export async function getExecutiveData(ctx: AuthContext) {
         coalesce(sum(case when a.account_type='income' then l.credit_amount*l.fx_rate_to_presentation_currency else 0 end),0) income,
         coalesce(sum(case when a.account_type='expense' then l.debit_amount*l.fx_rate_to_presentation_currency else 0 end),0) expense
       from public.journal_entries e join public.journal_entry_lines l on l.journal_entry_id=e.id join public.accounts a on a.id=l.account_id
-      where e.status='posted' and e.transaction_date >= (date_trunc('month',current_date)-interval '11 months')
+      where e.status='posted' and e.source_module <> 'closing'
+        and e.transaction_date >= (date_trunc('month',current_date)-interval '11 months')
         and ${scoped("e.entity_id", scope)}
       group by 1,2 order by 2`,
 

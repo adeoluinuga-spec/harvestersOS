@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import { sql, type Exec } from "./db";
 
 type Scope = "all" | string[];
@@ -17,9 +17,9 @@ export async function getGovernanceDashboard(scope: Scope) {
     sql`select rpd.*, v.name as vendor_name, e.name as entity_name from public.related_party_disclosures rpd join public.vendors v on v.id = rpd.vendor_id left join public.entities e on e.id = rpd.entity_id where ${scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`(rpd.entity_id is null or rpd.entity_id in ${sql(scope)})`} order by rpd.created_at desc`,
     sql`select coi.*, u.email as trustee_email, s.full_name as staff_name, reviewer.email as reviewed_by_email
         from public.conflict_of_interest_registry coi
-        left join auth.users u on u.id = coi.trustee_id
+        left join public.app_users u on u.id = coi.trustee_id
         left join public.staff s on s.id = coi.staff_id
-        left join auth.users reviewer on reviewer.id = coi.reviewed_by
+        left join public.app_users reviewer on reviewer.id = coi.reviewed_by
         order by coi.date_declared desc`,
     sql`select id, is_anonymous, category, status, received_at, reviewed_at
         from public.whistleblower_reports order by received_at desc limit 25`,
@@ -48,7 +48,7 @@ export async function getTrusteeUsers() {
   return sql`
     select distinct u.id, u.email
     from public.user_entity_roles uer
-    join auth.users u on u.id = uer.user_id
+    join public.app_users u on u.id = uer.user_id
     where uer.role in ('board_trustee','governance_officer','auditor')
     order by u.email`;
 }
@@ -155,7 +155,7 @@ export async function getAuditLogRows(d: {
            al.action, al.table_name, al.record_id, al.entity_id, e.name as entity_name,
            al.note
     from public.audit_log al
-    left join auth.users u on u.id = al.actor_id
+    left join public.app_users u on u.id = al.actor_id
     left join public.entities e on e.id = al.entity_id
     where ${entityFilter} and ${actorFilter} and ${actionFilter} and ${startFilter} and ${endFilter}
     order by al.occurred_at desc

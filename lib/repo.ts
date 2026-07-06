@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import { sql, type Exec } from "./db";
 import type {
   AccountType,
@@ -145,19 +145,19 @@ export type RoleAssignmentRow = {
 /** Registered auth users, for the assignment picker. */
 export async function getUsers(): Promise<UserOption[]> {
   return sql<UserOption[]>`
-    select id, email from auth.users order by email`;
+    select id, email from public.app_users order by email`;
 }
 
-/** All current user↔entity↔role assignments, newest first. */
+/** All current userâ†”entityâ†”role assignments, newest first. */
 export async function getRoleAssignments(): Promise<RoleAssignmentRow[]> {
   return sql<RoleAssignmentRow[]>`
     select uer.id, uer.user_id, u.email, uer.role,
            uer.entity_id, e.name as entity_name,
            gb.email as granted_by_email, uer.granted_at
     from public.user_entity_roles uer
-    join auth.users u on u.id = uer.user_id
+    join public.app_users u on u.id = uer.user_id
     left join public.entities e on e.id = uer.entity_id
-    left join auth.users gb on gb.id = uer.granted_by
+    left join public.app_users gb on gb.id = uer.granted_by
     order by uer.granted_at desc`;
 }
 

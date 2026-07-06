@@ -63,8 +63,11 @@ export async function recordGiving(
   if (!givingTypeId) return { error: "Select a giving type." };
   if (!channel) return { error: "Select a channel." };
   if (!transactionDate) return { error: "Select the transaction date." };
+  if (transactionDate > new Date().toISOString().slice(0, 10))
+    return { error: "The transaction date cannot be in the future." };
   const amt = Number(amount);
   if (!Number.isFinite(amt) || amt <= 0) return { error: "Enter a valid amount greater than zero." };
+  const clientKey = String(formData.get("client_key") || "") || null;
 
   let resolve;
   if (mode === "existing") {
@@ -102,6 +105,7 @@ export async function recordGiving(
           transactionDate,
           note,
           pledgeId,
+          clientKey,
         },
         ctx.user.id
       )

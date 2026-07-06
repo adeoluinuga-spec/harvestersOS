@@ -26,11 +26,18 @@ export function RecordGivingForm({
   const [attributionEntityId, setAttributionEntityId] = useState(entities[0]?.id ?? "");
   const [mode, setMode] = useState<"new" | "existing" | "anonymous">("new");
   const [nonce, setNonce] = useState(0);
+  // Idempotency key: a double-click or network retry re-submits the SAME key,
+  // and the database unique index turns the duplicate into a no-op.
+  const [clientKey, setClientKey] = useState("");
+  useEffect(() => setClientKey(crypto.randomUUID()), []);
 
   // Clear transient fields (amount/giver) after a successful post, keeping the
   // batch context (entity, type, channel, date) for the next quick entry.
   useEffect(() => {
-    if (state.ok) setNonce((n) => n + 1);
+    if (state.ok) {
+      setNonce((n) => n + 1);
+      setClientKey(crypto.randomUUID());
+    }
   }, [state]);
 
   const currency =
@@ -40,6 +47,7 @@ export function RecordGivingForm({
   return (
     <form action={action} className="space-y-5">
       <input type="hidden" name="currency" value={currency} />
+      <input type="hidden" name="client_key" value={clientKey} />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Receiving entity" htmlFor="entity_id" required>

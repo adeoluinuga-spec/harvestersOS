@@ -34,11 +34,17 @@ export function lastMonths(n) {
   return out;
 }
 export const iso = (d) => d.toISOString().slice(0, 10);
-// a random date within a given month
+// a random date within a given month, never in the future — the ledger
+// rejects future-dated postings (migration 0023), and "live" data must not
+// contain income that has not happened yet.
 export function dayIn(monthDate) {
+  const now = new Date();
   const y = monthDate.getFullYear();
   const m = monthDate.getMonth();
-  const days = new Date(y, m + 1, 0).getDate();
+  const isCurrentMonth = y === now.getFullYear() && m === now.getMonth();
+  const days = isCurrentMonth
+    ? now.getDate()
+    : new Date(y, m + 1, 0).getDate();
   return new Date(y, m, rndInt(1, days));
 }
 
@@ -130,6 +136,9 @@ const TRUNCATE_TABLES = [
   "vendor_duplicate_flags", "vendors", "cross_border_transfers",
   "notifications", "email_outbox", "import_rows", "import_batches",
   "weekly_income_reports", "message_outbox",
+  // Accounting-period layer (0023): counters and period rows regenerate on
+  // demand; year-close records are demo actions. All safe to clear.
+  "fiscal_periods", "fiscal_year_closes",
 ];
 // Deleted (not truncated) because they also hold baseline rows to preserve.
 const DELETE_NOT_KEPT = ["bank_accounts", "fx_rates", "partnership_tiers", "payroll_tax_rules"];
@@ -151,6 +160,8 @@ export async function reset() {
     // 1. Wipe transactional tables. TRUNCATE does NOT fire row DELETE triggers,
     //    so the ledger immutability guard does not block this admin reset.
     await tx.unsafe(`truncate table ${TRUNCATE_TABLES.map((t) => "public." + t).join(", ")} cascade`);
+    // JE numbering counters restart with the emptied ledger (gapless from 1).
+    await tx.unsafe(`truncate table app_private.je_counters`);
 
     // 2. Remove demo rows from preserve-tables that we also added to.
     for (const t of DELETE_NOT_KEPT) {

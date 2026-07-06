@@ -2,27 +2,48 @@ import "server-only";
 import postgres from "postgres";
 
 /**
- * Server-only Postgres connection (owner role, via the session pooler).
+ * Server-only Postgres connections.
  *
- * Used by the internal admin data layer and scripts. NEVER import this from a
- * Client Component. Ledger integrity is enforced by database triggers, so even
- * this privileged connection cannot mutate posted ledger rows.
+ * `sql` — the application connection. Uses the least-privilege `hfos_app`
+ * login (APP_DATABASE_URL, provisioned by scripts/provision-db-roles.mjs):
+ * DML + sanctioned functions only, no DDL, statement-timeout bounded. Falls
+ * back to DATABASE_URL (owner) so a fresh environment still boots before
+ * provisioning. Ledger integrity is enforced by database triggers either way.
  *
- * A single pooled instance is reused across hot reloads in development.
+ * `aiSql` — the "Ask the ledger" connection. Uses `hfos_ai` (AI_DATABASE_URL):
+ * SELECT on the approved analytics views' closure only, forced read-only,
+ * 10s statement timeout. AI-generated SQL must never run on `sql`.
+ *
+ * NEVER import this module from a Client Component.
  */
 const globalForDb = globalThis as unknown as {
   __hfos_sql?: ReturnType<typeof postgres>;
+  __hfos_ai_sql?: ReturnType<typeof postgres>;
 };
 
 export const sql =
   globalForDb.__hfos_sql ??
-  postgres(process.env.DATABASE_URL!, {
+  postgres(process.env.APP_DATABASE_URL ?? process.env.DATABASE_URL!, {
     ssl: "require",
     prepare: false,
-    max: 3,
+    max: 10,
   });
 
-if (process.env.NODE_ENV !== "production") globalForDb.__hfos_sql = sql;
+/** Read-only analytics connection for AI-generated queries (hfos_ai role). */
+export const aiSql =
+  globalForDb.__hfos_ai_sql ??
+  (process.env.AI_DATABASE_URL
+    ? postgres(process.env.AI_DATABASE_URL, {
+        ssl: "require",
+        prepare: false,
+        max: 2,
+      })
+    : sql);
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.__hfos_sql = sql;
+  globalForDb.__hfos_ai_sql = aiSql;
+}
 
 /** A postgres.js executor (the base client or a transaction). */
 export type Exec = typeof sql;

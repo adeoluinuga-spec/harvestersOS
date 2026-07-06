@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import { sql, type Exec } from "./db";
 import { notifyInApp, queueMessage, usersForRoleAtEntity } from "./notify";
 
@@ -107,7 +107,7 @@ export async function getBankAccounts(scope: Scope) {
 }
 
 export async function getUsers() {
-  return sql`select id, email from auth.users order by email`;
+  return sql`select id, email from public.app_users order by email`;
 }
 
 export async function createVendor(
@@ -168,7 +168,7 @@ export async function getRequests(scope: Scope, limit = 50): Promise<RequestRow[
            rr.related_party_disclosure_note
     from public.requisition_requests rr
     join public.entities e on e.id = rr.entity_id
-    left join auth.users u on u.id = rr.raised_by
+    left join public.app_users u on u.id = rr.raised_by
     left join public.vendors v on v.id = rr.vendor_id
     where ${scoped("rr.entity_id", scope)}
     order by rr.is_urgent desc, rr.created_at desc
@@ -184,7 +184,7 @@ export async function getMyRequests(userId: string): Promise<RequestRow[]> {
            rr.related_party_disclosure_note
     from public.requisition_requests rr
     join public.entities e on e.id = rr.entity_id
-    left join auth.users u on u.id = rr.raised_by
+    left join public.app_users u on u.id = rr.raised_by
     left join public.vendors v on v.id = rr.vendor_id
     where rr.raised_by = ${userId}
     order by rr.created_at desc`;
@@ -199,7 +199,7 @@ export async function getCompileQueue(scope: Scope) {
            rr.related_party_disclosure_note
     from public.requisition_requests rr
     join public.entities e on e.id = rr.entity_id
-    left join auth.users u on u.id = rr.raised_by
+    left join public.app_users u on u.id = rr.raised_by
     left join public.vendors v on v.id = rr.vendor_id
     where rr.status = 'submitted' and rr.is_urgent = false and ${scoped("rr.entity_id", scope)}
     order by rr.needed_by_date nulls last, rr.created_at`;
@@ -427,7 +427,7 @@ export async function getSignatureSlots(scope: Scope) {
     join public.bank_accounts ba on ba.id = slot.bank_account_id
     join public.entities e on e.id = ba.entity_id
     left join public.disbursement_signature_slot_members m on m.slot_id = slot.id
-    left join auth.users u on u.id = m.user_id
+    left join public.app_users u on u.id = m.user_id
     where ${scoped("ba.entity_id", scope)}
     group by slot.id, ba.id, e.name
     order by e.name, ba.bank_name, slot.slot_order`;
@@ -467,7 +467,7 @@ export async function getMyRequestsPaged(userId: string, page: number, pageSize:
              rr.related_party_disclosure_note
       from public.requisition_requests rr
       join public.entities e on e.id = rr.entity_id
-      left join auth.users u on u.id = rr.raised_by
+      left join public.app_users u on u.id = rr.raised_by
       left join public.vendors v on v.id = rr.vendor_id
       where rr.raised_by = ${userId}
       order by rr.created_at desc
@@ -513,12 +513,12 @@ export async function notifyDecision(approvalId: string, decision: string, actor
     from public.requisition_approvals ra
     left join public.requisition_batch_items rbi on rbi.batch_id = ra.requisition_batch_id
     join public.requisition_requests rr on rr.id = coalesce(ra.requisition_request_id, rbi.requisition_request_id)
-    left join auth.users u on u.id = rr.raised_by
+    left join public.app_users u on u.id = rr.raised_by
     where ra.id = ${approvalId}`;
   for (const r of rows) {
     if (!r.raised_by) continue;
     const title = decision === "approved" ? "Requisition approved" : "Requisition rejected";
-    const body = `Your requisition “${r.description}” has been ${decision}.`;
+    const body = `Your requisition â€œ${r.description}â€ has been ${decision}.`;
     await notifyInApp({ userId: r.raised_by, entityId: r.entity_id, title, body, href: "/expenses/track" });
     if (r.email)
       await queueMessage({ channel: "email", toContact: r.email, toUserId: r.raised_by, subject: title, body, kind: "approval_decision", entityId: r.entity_id }, actorId);
@@ -535,7 +535,7 @@ export async function nudgePendingApprover(requestId: string, actorId: string): 
     select description, entity_id from public.requisition_requests where id = ${requestId}`;
   if (!req) return null;
   const title = "Approval reminder";
-  const body = `“${req.description}” is awaiting your ${pending.role.replaceAll("_", " ")} approval.`;
+  const body = `â€œ${req.description}â€ is awaiting your ${pending.role.replaceAll("_", " ")} approval.`;
   await notifyInApp({ role: pending.role, entityId: req.entity_id, title, body, href: "/expenses/approvals" });
   const users = await usersForRoleAtEntity(pending.role, req.entity_id);
   for (const u of users.slice(0, 10)) {

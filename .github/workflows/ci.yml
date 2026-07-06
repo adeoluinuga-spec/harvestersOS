@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+        env:
+          # Build only needs the shapes, not live services.
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/postgres
+
+  db-tests:
+    name: Ledger integrity tests
+    runs-on: ubuntu-latest
+    # Requires the TEST_DATABASE_URL secret (a staging/test Supabase project —
+    # never production). The job is skipped when the secret is absent.
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Check for database secret
+        id: has-db
+        run: echo "present=${{ secrets.TEST_DATABASE_URL != '' }}" >> "$GITHUB_OUTPUT"
+      - name: Migrate test database
+        if: steps.has-db.outputs.present == 'true'
+        run: node scripts/db-migrate.mjs up
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      - name: Run integrity suite
+        if: steps.has-db.outputs.present == 'true'
+        run: npm test
+        env:
+          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+      - name: Skipped (no TEST_DATABASE_URL secret)
+        if: steps.has-db.outputs.present != 'true'
+        run: echo "Set the TEST_DATABASE_URL repo secret to enable database integrity tests in CI."

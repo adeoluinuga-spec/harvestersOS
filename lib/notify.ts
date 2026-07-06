@@ -1,17 +1,17 @@
-import "server-only";
+﻿import "server-only";
 import { sql, type Exec } from "./db";
 
 /**
  * Notifications: in-app rows (`notifications` table, shown on dashboards) plus a
  * provider-agnostic `message_outbox` (email / SMS / WhatsApp). Outbox messages
  * queue even without provider keys and deliver once TERMII_API_KEY /
- * RESEND_API_KEY are configured — nothing is lost.
+ * RESEND_API_KEY are configured â€” nothing is lost.
  */
 
 export type InAppNotice = {
-  userId?: string | null;   // a specific user…
-  role?: string | null;     // …or everyone holding a role
-  entityId?: string | null; // …scoped to an entity
+  userId?: string | null;   // a specific userâ€¦
+  role?: string | null;     // â€¦or everyone holding a role
+  entityId?: string | null; // â€¦scoped to an entity
   title: string;
   body: string;
   href?: string | null;
@@ -56,7 +56,7 @@ export async function usersForRoleAtEntity(role: string, entityId: string): Prom
     )
     select distinct u.id, u.email
     from public.user_entity_roles uer
-    join auth.users u on u.id = uer.user_id
+    join public.app_users u on u.id = uer.user_id
     where uer.role = ${role}::public.app_role
       and (uer.entity_id is null or uer.entity_id in (select id from up))`;
 }

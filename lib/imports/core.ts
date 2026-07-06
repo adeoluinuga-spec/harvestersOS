@@ -1,4 +1,4 @@
-import "server-only";
+﻿import "server-only";
 import { sql, withActor } from "@/lib/db";
 import { createClient } from "@/lib/supabase/server";
 import { buildContext, parseSpreadsheet, type RawRow } from "./engine";
@@ -49,7 +49,7 @@ export async function createAndValidateBatch(opts: {
   const rawRows: RawRow[] = parseSpreadsheet(opts.buffer);
   if (rawRows.length === 0) throw new Error("The file has no data rows.");
 
-  // Validation is read-only — use the base connection.
+  // Validation is read-only â€” use the base connection.
   const ctx = await buildContext(
     opts.actor.actorId,
     opts.actor.accessibleEntityIds,
@@ -175,10 +175,10 @@ export async function listBatches(actor: ActorCtx, limit = 50) {
   return sql`
     select b.id, b.import_type, b.status, b.file_name, b.total_rows, b.valid_rows,
            b.error_rows, b.committed_rows, b.created_at,
-           coalesce(e.name, '—') as entity_name, u.email as uploaded_by_email
+           coalesce(e.name, 'â€”') as entity_name, u.email as uploaded_by_email
     from public.import_batches b
     left join public.entities e on e.id = b.entity_id
-    left join auth.users u on u.id = b.uploaded_by
+    left join public.app_users u on u.id = b.uploaded_by
     where ${scope ? sql`(b.uploaded_by = ${actor.actorId} or b.entity_id in ${sql(scope.length ? scope : ["00000000-0000-0000-0000-000000000000"])})` : sql`true`}
     order by b.created_at desc limit ${limit}`;
 }

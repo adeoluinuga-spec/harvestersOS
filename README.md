@@ -461,3 +461,27 @@ never prefix it with `NEXT_PUBLIC_`.
 
 Harvesters International Christian Centre — black & white, occasional silver.
 Futura (display) / Montserrat (body).
+
+## Enterprise hardening (July 2026)
+
+The platform went through a Phase-1 enterprise hardening pass (full ledger in
+[docs/ENTERPRISE_ROADMAP.md](docs/ENTERPRISE_ROADMAP.md)):
+
+- **Accounting periods & close** - posting requires an open monthly period and
+  is never allowed with a future date; year-end close rolls income/expense to
+  Retained Earnings (Admin -> Periods). Migrations `0022`/`0023`/`0027`.
+- **Gapless journal-entry numbers** per entity per fiscal year (`JE-2026-000123`).
+- **Least-privilege DB roles** - the app runs as `hfos_app` (DML only, no DDL,
+  20s timeout); AI analytics run as `hfos_ai` (approved views only, read-only,
+  10s). Provision with `npm run db:provision-roles`.
+- **Tracked migrations** - `npm run db:migrate` / `npm run db:status`
+  (checksummed `schema_migrations`, drift detection).
+- **Background jobs** - pg_cron nightly (approval-SLA escalation, maturity
+  alerts, lapsed partners) + `/api/jobs` (CRON_SECRET) drains the message
+  outbox; Vercel cron schedules in `vercel.json`.
+- **Idempotent giving entry** (`client_key`) and write-time NGN capture
+  (`amount_ngn`) so dashboards stop recomputing FX per row.
+- **Security headers + rate limiting** (CSP/HSTS; login & search throttled).
+- **Tests & CI** - `npm test` runs a rollback-isolated ledger integrity suite
+  (balance, immutability, SoD, periods, numbering, idempotency);
+  `.github/workflows/ci.yml` adds lint/typecheck/build and secret-gated DB tests.

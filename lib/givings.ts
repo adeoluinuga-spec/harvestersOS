@@ -370,6 +370,8 @@ export type RecordGivingInput = {
   transactionDate: string;
   note: string | null;
   pledgeId: string | null;
+  /** Idempotency key: a re-submit with the same key is a no-op. */
+  clientKey?: string | null;
 };
 
 export async function recordGiving(
@@ -377,6 +379,15 @@ export async function recordGiving(
   input: RecordGivingInput,
   actorId: string
 ): Promise<{ grId: string; je: string; giverId: string | null; flagged: FlaggedMatch[] }> {
+  // Idempotency: if this exact submission already landed, return it untouched
+  // (no second ledger posting, no duplicate pledge fulfillment).
+  if (input.clientKey) {
+    const [dupe] = await tx<{ id: string; journal_entry_id: string; giver_id: string | null }[]>`
+      select id, journal_entry_id, giver_id from public.giving_records
+      where client_key = ${input.clientKey}`;
+    if (dupe) return { grId: dupe.id, je: dupe.journal_entry_id, giverId: dupe.giver_id, flagged: [] };
+  }
+
   const { giverId, flagged } = await resolveGiver(tx, input.resolve);
   const recordingEntityId = input.recordingEntityId ?? input.entityId;
   const attributionEntityId = input.attributionEntityId ?? input.entityId;
@@ -384,10 +395,11 @@ export async function recordGiving(
   const [gr] = await tx<{ id: string }[]>`
     insert into public.giving_records
       (giver_id, entity_id, recording_entity_id, attribution_entity_id, giving_type_id,
-       amount, currency, channel, transaction_date, recorded_by, note)
+       amount, currency, channel, transaction_date, recorded_by, note, client_key)
     values (${giverId}, ${recordingEntityId}, ${recordingEntityId}, ${attributionEntityId},
             ${input.givingTypeId}, ${input.amount}, ${input.currency},
-            ${input.channel}::public.giving_channel, ${input.transactionDate}::date, ${actorId}, ${input.note})
+            ${input.channel}::public.giving_channel, ${input.transactionDate}::date, ${actorId}, ${input.note},
+            ${input.clientKey ?? null})
     returning id`;
 
   const [{ post_giving_record: je }] = await tx<{ post_giving_record: string }[]>`

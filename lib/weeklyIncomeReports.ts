@@ -6,7 +6,8 @@ type Scope = "all" | string[];
 type ReportRow = Record<string, unknown>;
 
 const N = (v: unknown) => Number(v ?? 0);
-const AMT = sql`round(gr.amount * public.fx_rate_at(gr.currency::text, 'NGN', gr.transaction_date), 2)`;
+// NGN-equivalent captured once at write time (0024) — no per-row FX lookups.
+const AMT = sql`gr.amount_ngn`;
 const scoped = (col: string, scope: Scope) =>
   scope === "all" ? sql`true` : scope.length === 0 ? sql`false` : sql`${sql.unsafe(col)} in ${sql(scope)}`;
 

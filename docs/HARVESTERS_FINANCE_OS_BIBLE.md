@@ -127,6 +127,15 @@ posted transaction through normal operations.
 4. **Triggers fire for everyone**, including privileged/server code — the only
    way to bulk‑clear the ledger is `TRUNCATE` (used solely by the admin demo
    reset), which is deliberately outside normal operations.
+5. **Accounting periods.** Posting requires an **open monthly period** and is
+   never allowed with a **future date**. Periods auto‑create as open; closing
+   (and reopening) them is an audited super‑admin action under **Admin →
+   Periods**. Once every period of a year is closed, a **year‑end close**
+   sweeps income/expense into Retained Earnings (account 3900) via `closing`
+   entries, which P&L reports exclude.
+6. **Sequential entry numbers.** Every posted entry receives a **gapless
+   number per entity per fiscal year** (`JE-2026-000123`), assigned atomically
+   at posting. A gap in the sequence is evidence of tampering.
 
 ### How modules use it
 
@@ -558,9 +567,24 @@ and posting functions. Note that a reset returns a *clean* platform, not a
 ## 15. Operations & Maintenance
 
 - **Environment:** `.env.local` (git‑ignored) holds the Supabase URL, publishable
-  key, and the server‑only `DATABASE_URL`. Set the same in production hosting.
-- **Migrations:** `supabase/migrations/0001…0021`. Apply with the runner:
-  `node --env-file=.env.local scripts/db-run.mjs supabase/migrations/*.sql`.
+  key, and the server‑only `DATABASE_URL`, plus `APP_DATABASE_URL` /
+  `AI_DATABASE_URL` (least‑privilege logins — see Security) and `CRON_SECRET`
+  (background‑jobs endpoint). Set the same in production hosting.
+- **Migrations are tracked.** `supabase/migrations/0001…0028` are recorded in
+  `public.schema_migrations` (checksummed; drift is detected and refused).
+  Apply with `npm run db:migrate`; inspect with `npm run db:status`.
+- **Database roles:** the app connects as `hfos_app` (DML + sanctioned
+  functions only, no DDL, 20s statement timeout); AI analytics run as
+  `hfos_ai` (approved views only, forced read‑only, 10s timeout). Provision
+  per environment with `npm run db:provision-roles`.
+- **Tests & CI:** `npm test` runs the rollback‑isolated ledger integrity suite
+  (balance, immutability, SoD, periods, numbering, idempotency);
+  `.github/workflows/ci.yml` runs lint/typecheck/build plus the DB suite when
+  a `TEST_DATABASE_URL` secret is configured.
+- **Background jobs:** pg_cron runs the nightly SQL jobs (approval‑SLA
+  escalation, maturity alerts, lapse detection); `/api/jobs` (CRON_SECRET‑
+  protected, scheduled in `vercel.json`) drains the email/WhatsApp outbox and
+  can run everything on hosts without pg_cron.
 - **Verification scripts** (`scripts/`): `test-ledger.mjs` (ledger integrity),
   `rls-check.mjs`, `test-auth.mjs`, `test-givings.mjs`, `test-imports.mjs`,
   `test-pass2.mjs` (weekly reports, notifications, scoped dashboards, expense
@@ -576,25 +600,31 @@ and posting functions. Note that a reset returns a *clean* platform, not a
 
 ## 16. Known Limitations & Production Hardening
 
-Before going fully live, address:
+Hardened in July 2026 (see `docs/ENTERPRISE_ROADMAP.md` for the full ledger):
+tracked migrations with drift detection, least‑privilege database roles for
+the app and the AI runner, accounting periods + gapless entry numbering +
+year‑end close, write‑time NGN capture, idempotent giving entry, background
+jobs (SLA escalation, maturity alerts, outbox drain), security headers + rate
+limiting, and a CI‑runnable ledger integrity test suite.
+
+Before going fully live, still address:
 
 - **Auth conveniences are on for internal use:** new users auto‑confirm (no
   SMTP), and the first registered user auto‑becomes `super_admin`. Remove/gate
   these when real email is configured.
-- **Server data access uses a direct Postgres connection** (a Supabase
-  service‑role key was not provided). Rotate the database password before
-  production; optionally switch server access to the service‑role key.
-- **Migrations are applied via a script**, not a tracked migration table — adopt
-  the Supabase CLI or a migration ledger to keep environments in sync.
+- **MFA** is not yet enforced for approvers/bank signatories (Phase 2).
 - **The `xlsx` (SheetJS) parser** has a known advisory in its npm build; pin to
   the patched SheetJS distribution for production.
-- **Automated test coverage** exists for the ledger/auth/givings/imports; extend
-  it to the later modules (payroll tax, restricted‑fund enforcement, WHT,
-  reconciliation variance).
-- **Real‑usage bugs fixed:** `create_vendor` and `detect_lapsed_partners` were
-  found and fixed (migration `0020`). Keep simulating real flows to surface more.
+- **Extend test coverage** to the later modules (payroll tax, restricted‑fund
+  enforcement, WHT, reconciliation variance) and add the `TEST_DATABASE_URL`
+  repo secret so CI runs the DB suite.
+- **Backups/DR:** enable PITR and verify a restore quarterly; write the runbook.
 - **Bulk giving imports** post one entry at a time; a set‑based poster would speed
   very large migrations.
+- **Real‑usage bugs fixed:** `create_vendor` and `detect_lapsed_partners`
+  (migration `0020`); the AI analytics allow‑list referenced a non‑existent
+  view (`budget_rollup_view` → `budget_vs_actual_rollup`, fixed with the role
+  work). Keep simulating real flows to surface more.
 
 ---
 
@@ -646,7 +676,10 @@ Before going fully live, address:
 
 ---
 
-*This document reflects the platform as built through migration `0021` — including
+*This document reflects the platform as built through migration `0028` —
+including the accounting‑period/close layer, gapless entry numbering,
+least‑privilege database roles, tracked migrations, background jobs, and the
+ledger integrity test suite (see `docs/ENTERPRISE_ROADMAP.md`) — plus
 the scope‑aware executive dashboards for every cadre, giving breakdown/analytics,
 global search, spreadsheet imports & bulk management, AI weekly income reports
 with in‑app delivery, and the notification layer (in‑app + email/WhatsApp/SMS

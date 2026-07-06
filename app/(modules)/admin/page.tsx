@@ -36,6 +36,12 @@ export default async function AdminPage() {
       desc: "Assign users to entities and roles. Super administrators only.",
       show: ctx.isSuperAdmin,
     },
+    {
+      href: "/admin/periods",
+      title: "Accounting Periods",
+      desc: "Open/close monthly periods and run the year-end close to retained earnings. Super administrators only.",
+      show: ctx.isSuperAdmin,
+    },
   ].filter((l) => l.show);
 
   return (

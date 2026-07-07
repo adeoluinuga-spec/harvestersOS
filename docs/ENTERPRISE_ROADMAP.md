@@ -77,3 +77,24 @@ account (accrual recognition decision for the board/auditor).
 - Budget versions/scenarios and rolling forecast.
 - Accessible primitives sweep (Radix/React Aria for modals/menus), dark mode, i18n.
 - Error tracking (Sentry) + external uptime checks.
+
+## Phase 4 — Experience (in progress, July 2026)
+
+Design charter: enterprise minimalism (Linear/Stripe/Mercury class). Pure
+white + #FAFAFA surfaces, ONE deep-blue accent (#3B5BDB), Inter everywhere
+with tabular figures for money, soft shadows over hard borders, 8px rhythm,
+progressive disclosure. Owner-approved amendments: no inline editing on
+immutable rows (drawers + "Reverse entry" instead), no autosave on financial
+submission, every drawer URL-backed (auditors bookmark links), accessibility
+and mobile first-class, print routes preserved.
+
+| Stage | Deliverable | Status |
+| --- | --- | --- |
+| A | Design tokens + Inter + restyled primitives; new Drawer / Tabs / Skeleton / EmptyState / Sparkline / Kbd | ✅ |
+| B | Almost-white sidebar, calm topbar | ✅ |
+| C | ⌘K command palette — records (incl. accounts + journal entries by number) + navigation + actions, scope-filtered server-side | ✅ |
+| D | Living KPI cards — delta vs prior month, budget-utilisation context, sparkline | ✅ |
+| E | URL-backed slide-over drill-downs; record detail pattern (Overview / Timeline / Documents / Audit tabs) | ◻ next |
+| F | Tables v2 — filters, saved views, bulk bar, column hiding | ◻ |
+| G | Forms v2 — requisition with live budget/approval/ledger side panels | ◻ |
+| H | Persona workspaces + AI morning brief (evidence-linked claims only) | ◻ |

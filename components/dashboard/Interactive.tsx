@@ -2,15 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowUpRight, Sparkles } from "lucide-react";
-import { Modal } from "@/components/ui";
+import { ArrowUpRight, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { Modal, Sparkline } from "@/components/ui";
 import { cn } from "@/lib/utils";
 import { compactMoney, money } from "@/lib/format";
 import { humanize } from "@/lib/enums";
 
 function OpenLink({ href, label = "Open" }: { href: string; label?: string }) {
   return (
-    <Link href={href} className="inline-flex h-9 items-center gap-1.5 rounded border border-ink bg-ink px-3 font-sans text-xs font-semibold text-paper hover:bg-ink-800">
+    <Link href={href} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-cobalt px-3 font-sans text-xs font-semibold text-white hover:bg-cobalt-dark">
       {label}
       <ArrowUpRight className="h-3.5 w-3.5" />
     </Link>
@@ -18,10 +18,12 @@ function OpenLink({ href, label = "Open" }: { href: string; label?: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// KPI card — compact value, severity dot (red glow / green), click → callout.
+// Living KPI card — number, movement (delta vs prior period), context line
+// (target %, forecast, top contributor), sparkline. Click → callout.
 // ---------------------------------------------------------------------------
 export function KpiCard({
   label, display, caption, status, href, children,
+  delta, meta, spark,
 }: {
   label: string;
   display: string;
@@ -29,18 +31,25 @@ export function KpiCard({
   status: "attention" | "healthy";
   href: string;
   children: React.ReactNode;
+  /** Movement vs prior period, e.g. { pct: 12.4, caption: "vs last month" }. */
+  delta?: { pct: number; caption: string };
+  /** One context line under the number, e.g. "82% of ₦32bn target · top: UK". */
+  meta?: string;
+  /** Small trend series (oldest → newest). */
+  spark?: number[];
 }) {
   const [open, setOpen] = useState(false);
   const attention = status === "attention";
+  const up = (delta?.pct ?? 0) >= 0;
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group flex h-full w-full flex-col rounded-md border border-paper-200 bg-surface p-4 text-left shadow-card transition-all hover:-translate-y-0.5 hover:border-ink"
+        className="group flex h-full w-full flex-col rounded-lg border border-paper-200/60 bg-surface p-4 text-left shadow-card transition-all duration-150 hover:shadow-lift"
       >
         <div className="flex items-start justify-between gap-2">
-          <span className="min-w-0 flex-1 truncate font-sans text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+          <span className="min-w-0 flex-1 truncate font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             {label}
           </span>
           {attention ? (
@@ -52,11 +61,37 @@ export function KpiCard({
             <span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-status-success" title="Healthy" />
           )}
         </div>
-        <div className="mt-2 truncate font-display text-2xl font-semibold tracking-display text-ink">
-          {display}
+        <div className="mt-2 flex items-baseline gap-2">
+          <span
+            data-numeric
+            className="truncate font-display text-2xl font-semibold tracking-display text-ink"
+          >
+            {display}
+          </span>
+          {delta && (
+            <span
+              className={cn(
+                "inline-flex shrink-0 items-center gap-0.5 font-sans text-xs font-semibold",
+                up ? "text-status-success" : "text-status-danger"
+              )}
+            >
+              {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {Math.abs(delta.pct).toFixed(1)}%
+            </span>
+          )}
         </div>
-        <div className="mt-auto pt-2 font-sans text-[10px] text-muted-foreground">
-          Tap for detail →
+        {(delta || meta) && (
+          <div className="mt-0.5 truncate font-sans text-[11px] text-muted-foreground">
+            {[delta?.caption, meta].filter(Boolean).join(" · ")}
+          </div>
+        )}
+        <div className="mt-auto flex items-end justify-between gap-2 pt-2">
+          <span className="font-sans text-[10px] text-ink-300 opacity-0 transition-opacity group-hover:opacity-100">
+            Tap for detail →
+          </span>
+          {spark && spark.length > 1 && (
+            <Sparkline data={spark} width={88} height={24} strokeClassName={attention ? "stroke-status-danger" : "stroke-cobalt"} />
+          )}
         </div>
       </button>
       <Modal open={open} onClose={() => setOpen(false)} title={label} description={caption} footer={<OpenLink href={href} />}>

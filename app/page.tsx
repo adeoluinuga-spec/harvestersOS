@@ -82,32 +82,58 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-7xl space-y-6">
-      <section className="relative overflow-hidden rounded-xl bg-ink px-6 py-7 text-paper shadow-lift sm:px-8">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(200,169,106,0.28),transparent_24rem)]" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-1">
-            <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.16em] text-champagne">
-              Harvesters International Christian Centre
-            </div>
-            <h2 className="font-display text-4xl font-semibold tracking-display text-paper sm:text-5xl">Executive dashboard</h2>
-            <p className="max-w-3xl font-sans text-sm leading-relaxed text-paper/68">
-              Consolidated giving, budget health, fund stewardship, approvals, compliance attention, and investment maturities — every figure clickable.
-            </p>
+      <section className="flex flex-col gap-4 pt-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-1">
+          <div className="font-sans text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Harvesters International Christian Centre
           </div>
-          <Link href="/reports" className="inline-flex h-11 items-center gap-2 rounded-md border border-champagne/55 bg-paper px-4 font-sans text-sm font-bold text-ink shadow-lift transition-all hover:-translate-y-0.5">
-            Build board report <ArrowUpRight className="h-4 w-4" />
-          </Link>
+          <h2 className="font-display text-3xl font-semibold tracking-display text-ink">
+            Executive dashboard
+          </h2>
+          <p className="max-w-3xl font-sans text-sm leading-relaxed text-muted-foreground">
+            Consolidated giving, budget health, approvals and compliance — every figure opens its detail.
+          </p>
         </div>
+        <Link href="/reports" className="inline-flex h-10 shrink-0 items-center gap-2 rounded-md bg-cobalt px-4 font-sans text-sm font-semibold text-white shadow-card transition-colors hover:bg-cobalt-dark">
+          Build board report <ArrowUpRight className="h-4 w-4" />
+        </Link>
       </section>
 
-      {/* KPI cards */}
+      {/* KPI cards — number, movement, context, trend */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        {d.kpis.map((k) => (
-          <KpiCard key={k.key} label={k.label} display={k.format === "money" ? compactMoney(k.value, k.currency) : k.value.toLocaleString()}
-            caption={k.caption} status={k.status} href={k.href}>
-            <BreakdownList rows={breakdown(k.key)} />
-          </KpiCard>
-        ))}
+        {d.kpis.map((k) => {
+          const trend = d.charts.givingTrend.map((t) => t.amount);
+          const last = trend[trend.length - 1] ?? 0;
+          const prev = trend[trend.length - 2] ?? 0;
+          const isGiving = k.key === "consolidated_giving";
+          const budgetTotals = d.budgetByGroup.reduce(
+            (acc, r) => ({ approved: acc.approved + r.approved, actual: acc.actual + r.actual }),
+            { approved: 0, actual: 0 }
+          );
+          return (
+            <KpiCard
+              key={k.key}
+              label={k.label}
+              display={k.format === "money" ? compactMoney(k.value, k.currency) : k.value.toLocaleString()}
+              caption={k.caption}
+              status={k.status}
+              href={k.href}
+              delta={
+                isGiving && prev > 0
+                  ? { pct: ((last - prev) / prev) * 100, caption: "vs last month" }
+                  : undefined
+              }
+              meta={
+                k.key === "budget_variance" && budgetTotals.approved > 0
+                  ? `${Math.round((budgetTotals.actual / budgetTotals.approved) * 100)}% of approved used`
+                  : undefined
+              }
+              spark={isGiving ? trend : undefined}
+            >
+              <BreakdownList rows={breakdown(k.key)} />
+            </KpiCard>
+          );
+        })}
       </section>
 
       {/* Charts */}

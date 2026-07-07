@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils";
 
+/**
+ * Light-touch data table: sticky header, whisper-grey row separation, hover
+ * wash, tabular figures (set globally). Rows feel like content, not a grid.
+ */
 export function Table({
   className,
   ...props
@@ -18,7 +22,12 @@ export function TableHead({
   className,
   ...props
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("", className)} {...props} />;
+  return (
+    <thead
+      className={cn("sticky top-0 z-[1] bg-surface/95 backdrop-blur", className)}
+      {...props}
+    />
+  );
 }
 
 export function TableBody({
@@ -35,7 +44,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        "border-b border-paper-200/80 transition-colors hover:bg-champagne-light/35",
+        "border-b border-paper-100 transition-colors last:border-0 hover:bg-paper-50",
         className
       )}
       {...props}
@@ -50,7 +59,7 @@ export function TableHeaderCell({
   return (
     <th
       className={cn(
-        "border-b border-champagne/35 px-4 py-3 font-sans text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground",
+        "border-b border-paper-200 px-6 py-2.5 font-sans text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground",
         className
       )}
       {...props}
@@ -64,7 +73,7 @@ export function TableCell({
 }: React.TdHTMLAttributes<HTMLTableCellElement>) {
   return (
     <td
-      className={cn("px-4 py-3 font-sans text-ink align-middle", className)}
+      className={cn("px-6 py-3 font-sans text-ink align-middle", className)}
       {...props}
     />
   );

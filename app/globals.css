@@ -3,26 +3,27 @@
 @tailwind utilities;
 
 /*
- * Harvesters Finance OS - global tokens
- * Premium black and white, with restrained executive accent colors.
+ * Harvesters Finance OS — global tokens
+ * Enterprise minimalism: pure white surfaces, one deep-blue accent, neutral
+ * greys, soft shadows instead of heavy outlines. Inter everywhere; money is
+ * always set in tabular figures.
  */
 
 :root {
-  --font-display: "Cormorant Garamond", "Bodoni 72", "Didot",
-    "Baskerville", Georgia, serif;
-  --font-ui: "Aptos", "Inter", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-display: var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: var(--font-inter), "Segoe UI", "Helvetica Neue", Arial, sans-serif;
 
-  --background: #f7f5ef;
-  --foreground: #070707;
-  --surface: #fffefa;
-  --muted: #efebe2;
-  --muted-foreground: #67615a;
-  --border: #dfd7ca;
+  --background: #ffffff;
+  --foreground: #0a0b0d;
+  --surface: #ffffff;
+  --muted: #fafafa;
+  --muted-foreground: #6f7480;
+  --border: #ececee;
 
-  --accent: #c8a96a;
-  --accent-light: #eadfca;
-  --accent-emerald: #0d6b57;
-  --accent-cobalt: #233f8f;
+  --accent: #3b5bdb;
+  --accent-light: #edf1fd;
+  --accent-emerald: #059669;
+  --accent-cobalt: #3b5bdb;
 }
 
 * {
@@ -35,10 +36,9 @@ html {
 
 body {
   color: var(--foreground);
-  background:
-    radial-gradient(circle at top left, rgba(200, 169, 106, 0.16), transparent 32rem),
-    linear-gradient(180deg, #fffefa 0%, var(--background) 46%, #f1ede5 100%);
+  background: var(--background);
   font-family: var(--font-ui);
+  font-feature-settings: "cv11";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -51,8 +51,14 @@ body {
   h5,
   h6 {
     font-family: var(--font-display);
-    letter-spacing: 0;
+    letter-spacing: -0.02em;
     color: var(--foreground);
+  }
+
+  /* Money columns align; digits never dance. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -62,17 +68,32 @@ body {
   }
 
   .hairline {
-    border-color: var(--accent-light);
+    border-color: var(--border);
   }
 
+  /* Legacy alias kept for existing pages; now just a clean surface. */
   .premium-panel {
-    background:
-      linear-gradient(180deg, rgba(255, 254, 250, 0.96), rgba(255, 255, 255, 0.9)),
-      var(--surface);
+    background: var(--surface);
   }
 }
 
 :focus-visible {
-  outline: 2px solid #c8a96a;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+::selection {
+  background: var(--accent-light);
 }

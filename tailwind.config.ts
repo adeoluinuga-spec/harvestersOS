@@ -1,5 +1,14 @@
 import type { Config } from "tailwindcss";
 
+/**
+ * Design tokens — enterprise minimalism (Phase 4).
+ *
+ * The semantic token NAMES are stable (ink/paper/silver/champagne/cobalt/…)
+ * so every existing page restyles through this file alone. Values follow the
+ * Phase 4 charter: pure white, #FAFAFA secondary, neutral greys, ONE deep-blue
+ * accent, emerald/amber/red status colors, soft shadows over hard borders,
+ * 8px spacing rhythm.
+ */
 const config: Config = {
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
@@ -16,59 +25,65 @@ const config: Config = {
         muted: "var(--muted)",
         "muted-foreground": "var(--muted-foreground)",
 
+        // Near-black text ramp (neutral, no warm cast).
         ink: {
-          DEFAULT: "#070707",
-          950: "#020202",
-          900: "#070707",
-          800: "#101010",
-          700: "#1D1A17",
-          600: "#302A24",
-          500: "#4B443B",
-          400: "#6B6258",
-          300: "#958C80",
+          DEFAULT: "#0A0B0D",
+          950: "#050608",
+          900: "#0A0B0D",
+          800: "#16181D",
+          700: "#24272E",
+          600: "#3A3E48",
+          500: "#565B66",
+          400: "#6F7480",
+          300: "#9BA0AA",
         },
 
+        // Surfaces: pure white with a cool grey ramp for fills and borders.
         paper: {
-          DEFAULT: "#FFFEFA",
-          50: "#FFFDF7",
-          100: "#F7F3EA",
-          200: "#E9DFCF",
-          300: "#D9CCBA",
+          DEFAULT: "#FFFFFF",
+          50: "#FAFAFA",
+          100: "#F4F5F6",
+          200: "#ECECEE",
+          300: "#DFE1E4",
         },
 
+        // Neutral hairline grey (was metallic gold; now a true neutral).
         silver: {
-          DEFAULT: "#C8A96A",
-          light: "#EADFCB",
-          dark: "#9B7A36",
+          DEFAULT: "#D7DAE0",
+          light: "#ECEEF1",
+          dark: "#AEB3BC",
         },
 
+        // Legacy accent token, remapped to the soft end of the blue accent so
+        // existing borders/washes read as calm blue-greys.
         champagne: {
-          DEFAULT: "#C8A96A",
-          light: "#F3E7CD",
-          dark: "#8C6722",
+          DEFAULT: "#C9D4F5",
+          light: "#EDF1FD",
+          dark: "#3B5BDB",
         },
 
         emerald: {
-          DEFAULT: "#0D6B57",
-          light: "#E7F2EF",
-          dark: "#083F35",
+          DEFAULT: "#059669",
+          light: "#ECFDF5",
+          dark: "#047857",
         },
 
+        // THE accent. Deep blue; used for primary actions, links, focus.
         cobalt: {
-          DEFAULT: "#233F8F",
-          light: "#E8ECFA",
-          dark: "#14275C",
+          DEFAULT: "#3B5BDB",
+          light: "#EDF1FD",
+          dark: "#2B44A8",
         },
 
         status: {
-          success: "#0D6B57",
-          "success-bg": "#E7F2EF",
-          warning: "#8C6722",
-          "warning-bg": "#F8F0DD",
-          danger: "#8B2B2B",
-          "danger-bg": "#F6EDED",
-          neutral: "#4B443B",
-          "neutral-bg": "#F2EDE4",
+          success: "#059669",
+          "success-bg": "#ECFDF5",
+          warning: "#B45309",
+          "warning-bg": "#FFFBEB",
+          danger: "#DC2626",
+          "danger-bg": "#FEF2F2",
+          neutral: "#565B66",
+          "neutral-bg": "#F4F5F6",
         },
       },
       fontFamily: {
@@ -77,23 +92,24 @@ const config: Config = {
         body: ["var(--font-ui)"],
       },
       letterSpacing: {
-        display: "0",
-        "display-tight": "0",
+        display: "-0.02em",
+        "display-tight": "-0.03em",
       },
       borderColor: {
         DEFAULT: "var(--border)",
       },
       borderRadius: {
-        sm: "5px",
-        DEFAULT: "7px",
-        md: "8px",
-        lg: "10px",
+        sm: "6px",
+        DEFAULT: "8px",
+        md: "10px",
+        lg: "12px",
       },
       boxShadow: {
-        card: "0 16px 45px rgba(20,16,10,0.10), 0 2px 8px rgba(20,16,10,0.08)",
-        lift: "0 24px 70px rgba(10,10,10,0.18), 0 8px 18px rgba(200,169,106,0.10)",
-        overlay: "0 28px 80px rgba(10,10,10,0.24)",
-        "focus-ring": "0 0 0 2px #FFFEFA, 0 0 0 4px #C8A96A",
+        // Soft, layered, barely-there — outlines come from spacing, not ink.
+        card: "0 1px 2px rgba(16,24,40,0.05), 0 1px 3px rgba(16,24,40,0.06)",
+        lift: "0 4px 12px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.04)",
+        overlay: "0 24px 48px -12px rgba(16,24,40,0.18)",
+        "focus-ring": "0 0 0 2px #FFFFFF, 0 0 0 4px #3B5BDB",
       },
     },
   },

@@ -7,17 +7,17 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const variants: Record<BadgeVariant, string> = {
-  solid: "bg-ink text-paper border border-ink shadow-[0_8px_18px_rgba(7,7,7,0.18)]",
-  outline: "bg-paper text-ink border border-champagne/70",
-  muted: "bg-champagne-light text-ink-700 border border-champagne/25",
+  solid: "bg-ink text-white border border-ink",
+  outline: "bg-surface text-ink-600 border border-paper-300",
+  muted: "bg-paper-100 text-ink-600 border border-transparent",
 };
 
-/** Neutral, monochrome label. For approval/ledger state, use StatusPill. */
+/** Neutral label. For approval/ledger state, use StatusPill. */
 export function Badge({ className, variant = "muted", ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-sans text-[11px] font-semibold uppercase tracking-[0.08em]",
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 font-sans text-[11px] font-medium",
         variants[variant],
         className
       )}

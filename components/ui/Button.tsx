@@ -12,13 +12,12 @@ export interface ButtonProps
 
 const variants: Record<Variant, string> = {
   primary:
-    "border border-ink bg-ink text-paper shadow-[0_12px_28px_rgba(7,7,7,0.22)] hover:bg-ink-800 hover:shadow-lift active:bg-ink-950",
+    "bg-cobalt text-white shadow-card hover:bg-cobalt-dark active:bg-cobalt-dark",
   secondary:
-    "border border-champagne/60 bg-paper text-ink shadow-card hover:border-champagne hover:bg-paper-50 hover:shadow-lift",
-  ghost:
-    "border border-transparent bg-transparent text-ink hover:bg-paper-100 hover:text-ink-950",
+    "border border-paper-300 bg-surface text-ink shadow-card hover:border-silver-dark hover:bg-paper-50",
+  ghost: "bg-transparent text-ink-600 hover:bg-paper-100 hover:text-ink",
   danger:
-    "border border-status-danger/40 bg-paper text-status-danger hover:bg-status-danger-bg",
+    "border border-status-danger/30 bg-surface text-status-danger hover:bg-status-danger-bg",
 };
 
 const sizes: Record<Size, string> = {
@@ -32,7 +31,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     <button
       ref={ref}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-md font-sans font-semibold tracking-tight transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 rounded-md font-sans font-semibold transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50",
         variants[variant],
         sizes[size],
         className

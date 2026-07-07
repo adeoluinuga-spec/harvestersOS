@@ -7,7 +7,10 @@
 **Organisation:** Harvesters International Christian Centre
 **Type:** Ledger‑grade financial operating system
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind · Supabase (PostgreSQL 17)
-**Repository:** `harvestersOS` · **Brand:** black / white / silver · Futura + Montserrat
+**Repository:** `harvestersOS` · **Design language:** enterprise minimalism —
+pure white / #FAFAFA, one deep‑blue accent, Inter (tabular figures for money),
+soft shadows over borders, ⌘K command palette (see Phase 4 in
+`docs/ENTERPRISE_ROADMAP.md`)
 
 ---
 

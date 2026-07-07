@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/jobs?only=outbox", "schedule": "*/5 * * * *" },
-    { "path": "/api/jobs", "schedule": "30 2 * * *" }
+    { "path": "/api/jobs", "schedule": "30 2 * * *" },
+    { "path": "/api/jobs?only=outbox", "schedule": "0 12 * * *" }
   ]
 }

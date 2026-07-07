@@ -324,13 +324,39 @@ Each module posts to the ledger and respects roles, scope, SoD, and audit.
   requisition is approved or rejected.
 
 ### 9.3 Payroll & Honorariums
-- **Staff registry** distinguishing `minister_clergy` vs `administrative`, with
-  entity‑scoped location, employment status, PAYE state, and pension metadata.
-- **Configurable compensation components** (base + allowances) with per‑component
-  taxable treatment (e.g. clergy housing).
-- **Configurable PAYE rules** by state and staff type; payroll runs compute PAYE,
-  pension, NHF, gross and net, generate reviewable line items, and **post
-  balanced payroll journal entries on approval**.
+Payroll is **federated, mirroring how Harvesters actually pays people**:
+campus staff are paid by their campus, central staff by the central office,
+ministry staff (NLP, HAEF, …) by their ministries — with the Central Head of
+Finance holding oversight, not operating each payroll.
+
+- **The workflow** (all in‑app, replacing the email chain): **HR prepares**
+  (new `hr_officer` role) → **the campus pastor / ministry head approves**
+  (single approval, resolved automatically from the entity's cadre;
+  preparer ≠ approver enforced) → **finance uploads to the bank** →
+  **account‑specific signatories confirm** (same slot model as expense
+  disbursements) → staff are paid. Documents (schedules, memos) attach to
+  the run; every hand‑off raises in‑app + email notifications.
+- **Two half‑salary cycles.** Everyone is paid 50% on the **13th** and 50%
+  on the **26th** (configurable in `payroll_settings`). Approval
+  automatically spawns both cycle batches with a per‑staff 50/50 split.
+  The nightly job **announces each cycle ahead of time** to preparers and
+  **escalates** entities whose runs aren't ready as the date closes in.
+- **Two‑step accounting.** Approval posts the **accrual** (Dr Salaries
+  expense · Cr Salaries Payable 2110 · Cr statutory liabilities 2100);
+  each batch disbursement posts the **payment** (payable down, bank down).
+- **Payment outcomes per staff line** — successful / **returned** /
+  **contested** / reissued — with a campus‑and‑ministry **status board**.
+  A returned payment posts a correcting entry (bank back up, salary still
+  owed); reissues go out through a supplementary batch.
+- **Cadre drill‑down** on the payroll home: Groups → sub‑groups → campuses
+  (plus Central Office and Ministries), scope‑aware at every level; each
+  entity opens its **monthly payroll history & analysis** (headcount, gross,
+  PAYE, pension, net, MoM movement, 12‑month trend) with **spreadsheet
+  export**. Runs are paginated.
+- **Configurable payroll calculator**: compensation components (base +
+  allowances, taxable flags), state/staff‑type PAYE rules, and per‑period
+  **one‑off adjustments** (bonus, overtime, loan/co‑op deduction, absence)
+  that flow through PAYE/pension/NHF into the line items.
 - **Honorariums** for guest ministers / visiting speakers / resident
   intercessors with their own threshold approval flow and a distinct ledger
   source.

@@ -327,7 +327,12 @@ async function seedStaffPayroll() {
       for (const m of lastMonths(6)) {
         try {
           const [r] = await sql`select public.create_payroll_run(${c.id}, ${m.getMonth() + 1}, ${m.getFullYear()}, ${adminId}) as id`;
-          if (r?.id) await sql`select public.approve_payroll_run(${r.id}, ${cfoId})`;
+          if (r?.id) {
+            // Lifecycle: prepare → submit → pastor/head approves (spawns the
+            // two half-salary cycle batches, 13th & 26th).
+            await sql`select public.submit_payroll_run(${r.id}, ${adminId})`;
+            await sql`select public.approve_payroll_run(${r.id}, ${cfoId})`;
+          }
         } catch { /* skip month */ }
       }
     }

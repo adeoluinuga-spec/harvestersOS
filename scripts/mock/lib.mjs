@@ -139,6 +139,11 @@ const TRUNCATE_TABLES = [
   // Accounting-period layer (0023): counters and period rows regenerate on
   // demand; year-close records are demo actions. All safe to clear.
   "fiscal_periods", "fiscal_year_closes",
+  // Phase 2/3 additions.
+  "documents", "fixed_asset_depreciation", "fixed_assets", "online_payment_events",
+  // Federated payroll (0037).
+  "payroll_batch_signatures", "payroll_line_payments", "payroll_payment_batches",
+  "payroll_adjustments",
 ];
 // Deleted (not truncated) because they also hold baseline rows to preserve.
 const DELETE_NOT_KEPT = ["bank_accounts", "fx_rates", "partnership_tiers", "payroll_tax_rules"];

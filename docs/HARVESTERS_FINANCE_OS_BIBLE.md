@@ -187,7 +187,8 @@ what their roles allow.
 `campus_pastor`, `campus_finance_officer`, `campus_admin`,
 `campus_data_entry_clerk`, `ministry_lead`, `ministry_director`,
 `head_of_expression`, `event_finance_lead`, `finance_processor`,
-`bank_signatory`, `board_trustee`, `governance_officer`, `auditor`.
+`hr_officer`, `bank_signatory`, `board_trustee`, `governance_officer`,
+`auditor`.
 
 ### The scoping rule
 A user's role is granted **on one or more specific entities**, stored in
@@ -721,6 +722,7 @@ Before going fully live, still address:
 | `campus_data_entry_clerk` | Clerk | Their campus | Fast batch giving entry |
 | `ministry_lead` / `ministry_director` | e.g. NLP head | Their ministry | Partnerships, programmes, ministry finance |
 | `finance_processor` | Central finance | Assigned | Process approved disbursements |
+| `hr_officer` | Central/group/ministry HR | Their scope ↓ | Prepare payroll: staff, compensation, adjustments, generate & submit runs with documents |
 | `bank_signatory` | Authorised signatory | Assigned | Confirm disbursement signatures |
 | `board_trustee` | Trustee | Governance scope | Board‑level approvals, disclosures |
 | `governance_officer` | Compliance | Governance scope | Audit log, WHT, whistleblower, SCUML |
